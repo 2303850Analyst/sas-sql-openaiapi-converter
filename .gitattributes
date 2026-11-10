@@ -1,0 +1,2 @@
+*.egp binary
+fixtures/v2_pilot/scenario.sas.txt text eol=lf
