@@ -6,6 +6,8 @@ from migration_v2.rule_identity import RULE_SOURCES
 datas = [(str(root / "migration_v2" / "web"), "migration_v2/web"),
          (str(root / "migration_v2" / "example_contracts.json"), "migration_v2"),
          (str(root / "packaging_v2" / "THIRD_PARTY_NOTICES.txt"), "legal")]
+for folder in ("expansion/corpus", "fixtures/v2_pilot"):
+    datas += [(str(archive), folder) for archive in (root / folder).glob("*.egp")]
 for name in ("fastapi", "uvicorn", "sqlglot", "python-multipart", "pydantic", "opentelemetry-api", "psycopg", "psycopg-binary", "httpx"):
     datas += copy_metadata(name)
 for source in RULE_SOURCES:

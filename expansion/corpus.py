@@ -126,6 +126,79 @@ def projects():
     return [sql,summary,append,flow,lag,negative]
 
 
+
+def additional_projects():
+    """Independent examples covering seven distinct SAS language families."""
+    def examples(source, edge, other=None):
+        return [("edge", {source: edge}), ("second", {source: other if other is not None else edge[::-1]}),
+                ("empty", {source: []})]
+
+    projected = make("trial_options", "Input KEEP/WHERE/RENAME and output KEEP",
+        "data mart.selected(keep=id result); set source.items(keep=id raw active where=(active=1) rename=(raw=points)); result=points+2; run;",
+        {"items": binding([ID,col("raw"),col("active")])}, {"selected":[ID,col("result")]},
+        lambda x: {"selected":[[i,None if value is None else value+2] for i,value,a in x["items"] if a==1]},
+        examples("items",[[1,0,1],[2,None,1],[3,9,0],[4,8,None]]))
+    ordered_columns=[ID,col("bucket",nullable=False),col("value")]
+    def retained(x):
+        running={}
+        result=[]
+        ordered=sorted(x["events"],key=lambda r:(r[1],r[0]))
+        for i,bucket,value in ordered:
+            running[bucket]=running.get(bucket,0)+(value or 0)
+            result.append([i,bucket,running[bucket]])
+        return {"ordered_events":ordered,"running_totals":result}
+    retain = make("trial_retain", "Two programs: RETAIN, BY boundaries and sum statement",
+        {"P1":"proc sort data=source.events out=work.ordered_events; by bucket id; run;",
+         "P2":"data mart.running_totals(keep=id bucket running); set work.ordered_events; by bucket id; retain running 0; if first.bucket then running=0; running + value; run;"},
+        {"events":binding(ordered_columns,[["id"]])}, {"ordered_events":ordered_columns,"running_totals":[ID,col("bucket"),col("running",nullable=False)]},
+        retained,examples("events",[[3,2,9],[4,1,None],[2,1,-4],[1,1,4],[5,2,None]]),intermediate=("ordered_events",))
+    array = make("trial_array", "Fixed arrays and bounded DO loop",
+        "data mart.samples(keep=id total); set source.values_in; array v[2] a b; total=0; do j=1 to dim(v); if not missing(v[j]) then total=total+v[j]*j; end; run;",
+        {"values_in":binding([ID,col("a"),col("b")])},{"samples":[ID,col("total",nullable=False)]},
+        lambda x:{"samples":[[i,(a or 0)+2*(b or 0)] for i,a,b in x["values_in"]]},
+        examples("values_in",[[1,None,None],[2,3,-3],[3,0,5],[4,None,2]]))
+    def select_into(x):
+        limit=min(x["parameters"])[1] if x["parameters"] else 4
+        return {"selected_scores":[row for row in x["scores"] if row[1] is not None and row[1]>=limit]}
+    into = make("trial_select_into", "SELECT INTO scalar macro for zero, one and many result rows",
+        {"P1":"%let cutoff=4; proc sql noprint; select points into :cutoff trimmed from source.parameters order by seq; quit;",
+         "P2":"data mart.selected_scores; set source.scores; if score>=&cutoff.; run;"},
+        {"parameters":binding([col("seq",nullable=False),col("points",nullable=False)],[["seq"]]),
+         "scores":binding([ID,col("score")])},{"selected_scores":[ID,col("score")]},select_into,
+        [(label,{"parameters":rows,"scores":[[1,None],[2,3],[3,4],[4,10]]}) for label,rows in
+         (("zero",[]),("one",[[9,10]]),("many",[[9,10],[2,3],[3,8]]))])
+    def transpose(x):
+        groups={}
+        for station,band,reading in x["readings"]:
+            groups.setdefault(station,{})[band]=reading
+        return {"wide_readings":[[station,values.get("low"),values.get("high")] for station,values in groups.items()]}
+    wide = make("trial_transpose", "TRANSPOSE fixed global ID domain, sparse groups",
+        "proc transpose data=source.readings out=mart.wide_readings(drop=_name_) prefix=band_; by station; id band; var reading; run;",
+        {"readings":binding([col("station",nullable=False),col("band","VARCHAR(4)",False),col("reading")],[["station","band"]])},
+        {"wide_readings":[col("station"),col("band_low"),col("band_high")]},transpose,
+        [("sparse",{"readings":[[1,"low",4],[1,"high",7],[2,"high",None],[3,"low",0]]}),
+         ("one_group",{"readings":[[7,"low",None],[7,"high",9]]})])
+    format_case = make("trial_format", "User-defined FORMAT and character storage",
+        {"P1":"proc format; value badge 0='zero' 1-3='small' other='other'; run;",
+         "P2":"data mart.badges(keep=id label); length label $5; set source.levels; label=put(level,badge.); run;"},
+        {"levels":binding([ID,col("level")])},{"badges":[ID,col("label","VARCHAR(5)")]},
+        lambda x:{"badges":[[i,"zero" if v==0 else "small" if v is not None and 1<=v<=3 else "other"] for i,v in x["levels"]]},
+        examples("levels",[[1,None],[2,-1],[3,0],[4,1],[5,3],[6,4]]))
+    all_sets=make("trial_multiset", "UNION ALL preserves duplicates and NULL",
+        "proc sql; create table mart.combined as select id, units from source.batch_a union all select id, units from source.batch_b; quit;",
+        {"batch_a":binding([ID,col("units")]),"batch_b":binding([ID,col("units")])},{"combined":[ID,col("units")]},
+        lambda x:{"combined":x["batch_a"]+x["batch_b"]},
+        [("duplicate",{"batch_a":[[1,None],[1,None],[2,4]],"batch_b":[[1,None],[2,4],[3,0]]}),
+         ("one_side",{"batch_a":[],"batch_b":[[1,None],[1,None]]}),
+         ("empty",{"batch_a":[],"batch_b":[]})])
+    unsupported = make("trial_unknown_array", "External array bound must be resolved",
+        "%let n=%sysget(SYNTHETIC_ARRAY_BOUND); data mart.output; set source.values_in; array x[&n.] a b; run;",
+        {"values_in":binding([ID,col("a"),col("b")])},{"output":[ID,col("a"),col("b")]},None,
+        [("unresolved",{"values_in":[[1,2,3]]})],negative=True)
+    return [projected,retain,array,into,wide,format_case,all_sets,unsupported]
+
+
+
 def stable_archive(sources):
     out=io.BytesIO()
     xml="<ProjectCollection><Elements>"+"".join(
@@ -140,7 +213,7 @@ def stable_archive(sources):
 
 def freeze():
     FROZEN.mkdir(exist_ok=True)
-    items=projects()
+    items=projects()+additional_projects()
     for c in items:
         raw=stable_archive(c["sources"])
         c["archive_sha256"]=hashlib.sha256(raw).hexdigest()

@@ -2315,5 +2315,1314 @@
       "selected_books": "mart.selected_books"
     },
     "archive_sha256": "3552df779066b87c06173cb22f9446dff10fed5623c9164d12a7066293da5de5"
+  },
+  {
+    "id": "trial_options",
+    "title": "Input KEEP/WHERE/RENAME and output KEEP",
+    "sources": {
+      "P1": "data mart.selected(keep=id result); set source.items(keep=id raw active where=(active=1) rename=(raw=points)); result=points+2; run;"
+    },
+    "source": "data mart.selected(keep=id result); set source.items(keep=id raw active where=(active=1) rename=(raw=points)); result=points+2; run;",
+    "inputs": {
+      "items": {
+        "columns": [
+          {
+            "name": "id",
+            "data_type": "INTEGER",
+            "nullable": false
+          },
+          {
+            "name": "raw",
+            "data_type": "INTEGER",
+            "nullable": true
+          },
+          {
+            "name": "active",
+            "data_type": "INTEGER",
+            "nullable": true
+          }
+        ],
+        "unique_keys": []
+      }
+    },
+    "outputs": {
+      "selected": [
+        {
+          "name": "id",
+          "data_type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "result",
+          "data_type": "INTEGER",
+          "nullable": true
+        }
+      ]
+    },
+    "variants": [
+      {
+        "name": "edge",
+        "inputs": {
+          "items": [
+            [
+              1,
+              0,
+              1
+            ],
+            [
+              2,
+              null,
+              1
+            ],
+            [
+              3,
+              9,
+              0
+            ],
+            [
+              4,
+              8,
+              null
+            ]
+          ]
+        },
+        "expected": {
+          "selected": [
+            [
+              1,
+              2
+            ],
+            [
+              2,
+              null
+            ]
+          ]
+        }
+      },
+      {
+        "name": "second",
+        "inputs": {
+          "items": [
+            [
+              4,
+              8,
+              null
+            ],
+            [
+              3,
+              9,
+              0
+            ],
+            [
+              2,
+              null,
+              1
+            ],
+            [
+              1,
+              0,
+              1
+            ]
+          ]
+        },
+        "expected": {
+          "selected": [
+            [
+              2,
+              null
+            ],
+            [
+              1,
+              2
+            ]
+          ]
+        }
+      },
+      {
+        "name": "empty",
+        "inputs": {
+          "items": []
+        },
+        "expected": {
+          "selected": []
+        }
+      }
+    ],
+    "negative": false,
+    "finals": [
+      "selected"
+    ],
+    "output_sources": {
+      "selected": "mart.selected"
+    },
+    "archive_sha256": "ce1bbfd32533399dc74c0878563c29c34350bc69ffab682b3cc318306812900e"
+  },
+  {
+    "id": "trial_retain",
+    "title": "Two programs: RETAIN, BY boundaries and sum statement",
+    "sources": {
+      "P1": "proc sort data=source.events out=work.ordered_events; by bucket id; run;",
+      "P2": "data mart.running_totals(keep=id bucket running); set work.ordered_events; by bucket id; retain running 0; if first.bucket then running=0; running + value; run;"
+    },
+    "source": "proc sort data=source.events out=work.ordered_events; by bucket id; run;\ndata mart.running_totals(keep=id bucket running); set work.ordered_events; by bucket id; retain running 0; if first.bucket then running=0; running + value; run;",
+    "inputs": {
+      "events": {
+        "columns": [
+          {
+            "name": "id",
+            "data_type": "INTEGER",
+            "nullable": false
+          },
+          {
+            "name": "bucket",
+            "data_type": "INTEGER",
+            "nullable": false
+          },
+          {
+            "name": "value",
+            "data_type": "INTEGER",
+            "nullable": true
+          }
+        ],
+        "unique_keys": [
+          [
+            "id"
+          ]
+        ]
+      }
+    },
+    "outputs": {
+      "ordered_events": [
+        {
+          "name": "id",
+          "data_type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "bucket",
+          "data_type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "value",
+          "data_type": "INTEGER",
+          "nullable": true
+        }
+      ],
+      "running_totals": [
+        {
+          "name": "id",
+          "data_type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "bucket",
+          "data_type": "INTEGER",
+          "nullable": true
+        },
+        {
+          "name": "running",
+          "data_type": "INTEGER",
+          "nullable": false
+        }
+      ]
+    },
+    "variants": [
+      {
+        "name": "edge",
+        "inputs": {
+          "events": [
+            [
+              3,
+              2,
+              9
+            ],
+            [
+              4,
+              1,
+              null
+            ],
+            [
+              2,
+              1,
+              -4
+            ],
+            [
+              1,
+              1,
+              4
+            ],
+            [
+              5,
+              2,
+              null
+            ]
+          ]
+        },
+        "expected": {
+          "ordered_events": [
+            [
+              1,
+              1,
+              4
+            ],
+            [
+              2,
+              1,
+              -4
+            ],
+            [
+              4,
+              1,
+              null
+            ],
+            [
+              3,
+              2,
+              9
+            ],
+            [
+              5,
+              2,
+              null
+            ]
+          ],
+          "running_totals": [
+            [
+              1,
+              1,
+              4
+            ],
+            [
+              2,
+              1,
+              0
+            ],
+            [
+              4,
+              1,
+              0
+            ],
+            [
+              3,
+              2,
+              9
+            ],
+            [
+              5,
+              2,
+              9
+            ]
+          ]
+        }
+      },
+      {
+        "name": "second",
+        "inputs": {
+          "events": [
+            [
+              5,
+              2,
+              null
+            ],
+            [
+              1,
+              1,
+              4
+            ],
+            [
+              2,
+              1,
+              -4
+            ],
+            [
+              4,
+              1,
+              null
+            ],
+            [
+              3,
+              2,
+              9
+            ]
+          ]
+        },
+        "expected": {
+          "ordered_events": [
+            [
+              1,
+              1,
+              4
+            ],
+            [
+              2,
+              1,
+              -4
+            ],
+            [
+              4,
+              1,
+              null
+            ],
+            [
+              3,
+              2,
+              9
+            ],
+            [
+              5,
+              2,
+              null
+            ]
+          ],
+          "running_totals": [
+            [
+              1,
+              1,
+              4
+            ],
+            [
+              2,
+              1,
+              0
+            ],
+            [
+              4,
+              1,
+              0
+            ],
+            [
+              3,
+              2,
+              9
+            ],
+            [
+              5,
+              2,
+              9
+            ]
+          ]
+        }
+      },
+      {
+        "name": "empty",
+        "inputs": {
+          "events": []
+        },
+        "expected": {
+          "ordered_events": [],
+          "running_totals": []
+        }
+      }
+    ],
+    "negative": false,
+    "finals": [
+      "running_totals"
+    ],
+    "output_sources": {
+      "ordered_events": "work.ordered_events",
+      "running_totals": "mart.running_totals"
+    },
+    "archive_sha256": "8b8b7c4f4698e9928d6d28f5f2df9a5b43d65ae2759cd7ee675a62fe79da601d"
+  },
+  {
+    "id": "trial_array",
+    "title": "Fixed arrays and bounded DO loop",
+    "sources": {
+      "P1": "data mart.samples(keep=id total); set source.values_in; array v[2] a b; total=0; do j=1 to dim(v); if not missing(v[j]) then total=total+v[j]*j; end; run;"
+    },
+    "source": "data mart.samples(keep=id total); set source.values_in; array v[2] a b; total=0; do j=1 to dim(v); if not missing(v[j]) then total=total+v[j]*j; end; run;",
+    "inputs": {
+      "values_in": {
+        "columns": [
+          {
+            "name": "id",
+            "data_type": "INTEGER",
+            "nullable": false
+          },
+          {
+            "name": "a",
+            "data_type": "INTEGER",
+            "nullable": true
+          },
+          {
+            "name": "b",
+            "data_type": "INTEGER",
+            "nullable": true
+          }
+        ],
+        "unique_keys": []
+      }
+    },
+    "outputs": {
+      "samples": [
+        {
+          "name": "id",
+          "data_type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "total",
+          "data_type": "INTEGER",
+          "nullable": false
+        }
+      ]
+    },
+    "variants": [
+      {
+        "name": "edge",
+        "inputs": {
+          "values_in": [
+            [
+              1,
+              null,
+              null
+            ],
+            [
+              2,
+              3,
+              -3
+            ],
+            [
+              3,
+              0,
+              5
+            ],
+            [
+              4,
+              null,
+              2
+            ]
+          ]
+        },
+        "expected": {
+          "samples": [
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              -3
+            ],
+            [
+              3,
+              10
+            ],
+            [
+              4,
+              4
+            ]
+          ]
+        }
+      },
+      {
+        "name": "second",
+        "inputs": {
+          "values_in": [
+            [
+              4,
+              null,
+              2
+            ],
+            [
+              3,
+              0,
+              5
+            ],
+            [
+              2,
+              3,
+              -3
+            ],
+            [
+              1,
+              null,
+              null
+            ]
+          ]
+        },
+        "expected": {
+          "samples": [
+            [
+              4,
+              4
+            ],
+            [
+              3,
+              10
+            ],
+            [
+              2,
+              -3
+            ],
+            [
+              1,
+              0
+            ]
+          ]
+        }
+      },
+      {
+        "name": "empty",
+        "inputs": {
+          "values_in": []
+        },
+        "expected": {
+          "samples": []
+        }
+      }
+    ],
+    "negative": false,
+    "finals": [
+      "samples"
+    ],
+    "output_sources": {
+      "samples": "mart.samples"
+    },
+    "archive_sha256": "2f039c5dc00ddbc51a955e805454f73644bc1e66dfde9479c74252f13f754630"
+  },
+  {
+    "id": "trial_select_into",
+    "title": "SELECT INTO scalar macro for zero, one and many result rows",
+    "sources": {
+      "P1": "%let cutoff=4; proc sql noprint; select points into :cutoff trimmed from source.parameters order by seq; quit;",
+      "P2": "data mart.selected_scores; set source.scores; if score>=&cutoff.; run;"
+    },
+    "source": "%let cutoff=4; proc sql noprint; select points into :cutoff trimmed from source.parameters order by seq; quit;\ndata mart.selected_scores; set source.scores; if score>=&cutoff.; run;",
+    "inputs": {
+      "parameters": {
+        "columns": [
+          {
+            "name": "seq",
+            "data_type": "INTEGER",
+            "nullable": false
+          },
+          {
+            "name": "points",
+            "data_type": "INTEGER",
+            "nullable": false
+          }
+        ],
+        "unique_keys": [
+          [
+            "seq"
+          ]
+        ]
+      },
+      "scores": {
+        "columns": [
+          {
+            "name": "id",
+            "data_type": "INTEGER",
+            "nullable": false
+          },
+          {
+            "name": "score",
+            "data_type": "INTEGER",
+            "nullable": true
+          }
+        ],
+        "unique_keys": []
+      }
+    },
+    "outputs": {
+      "selected_scores": [
+        {
+          "name": "id",
+          "data_type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "score",
+          "data_type": "INTEGER",
+          "nullable": true
+        }
+      ]
+    },
+    "variants": [
+      {
+        "name": "zero",
+        "inputs": {
+          "parameters": [],
+          "scores": [
+            [
+              1,
+              null
+            ],
+            [
+              2,
+              3
+            ],
+            [
+              3,
+              4
+            ],
+            [
+              4,
+              10
+            ]
+          ]
+        },
+        "expected": {
+          "selected_scores": [
+            [
+              3,
+              4
+            ],
+            [
+              4,
+              10
+            ]
+          ]
+        }
+      },
+      {
+        "name": "one",
+        "inputs": {
+          "parameters": [
+            [
+              9,
+              10
+            ]
+          ],
+          "scores": [
+            [
+              1,
+              null
+            ],
+            [
+              2,
+              3
+            ],
+            [
+              3,
+              4
+            ],
+            [
+              4,
+              10
+            ]
+          ]
+        },
+        "expected": {
+          "selected_scores": [
+            [
+              4,
+              10
+            ]
+          ]
+        }
+      },
+      {
+        "name": "many",
+        "inputs": {
+          "parameters": [
+            [
+              9,
+              10
+            ],
+            [
+              2,
+              3
+            ],
+            [
+              3,
+              8
+            ]
+          ],
+          "scores": [
+            [
+              1,
+              null
+            ],
+            [
+              2,
+              3
+            ],
+            [
+              3,
+              4
+            ],
+            [
+              4,
+              10
+            ]
+          ]
+        },
+        "expected": {
+          "selected_scores": [
+            [
+              2,
+              3
+            ],
+            [
+              3,
+              4
+            ],
+            [
+              4,
+              10
+            ]
+          ]
+        }
+      }
+    ],
+    "negative": false,
+    "finals": [
+      "selected_scores"
+    ],
+    "output_sources": {
+      "selected_scores": "mart.selected_scores"
+    },
+    "archive_sha256": "70a400444c362b7ccb4254595a91925d8180c1b817c0fc63526fb05bb0c976d2"
+  },
+  {
+    "id": "trial_transpose",
+    "title": "TRANSPOSE fixed global ID domain, sparse groups",
+    "sources": {
+      "P1": "proc transpose data=source.readings out=mart.wide_readings(drop=_name_) prefix=band_; by station; id band; var reading; run;"
+    },
+    "source": "proc transpose data=source.readings out=mart.wide_readings(drop=_name_) prefix=band_; by station; id band; var reading; run;",
+    "inputs": {
+      "readings": {
+        "columns": [
+          {
+            "name": "station",
+            "data_type": "INTEGER",
+            "nullable": false
+          },
+          {
+            "name": "band",
+            "data_type": "VARCHAR(4)",
+            "nullable": false
+          },
+          {
+            "name": "reading",
+            "data_type": "INTEGER",
+            "nullable": true
+          }
+        ],
+        "unique_keys": [
+          [
+            "station",
+            "band"
+          ]
+        ]
+      }
+    },
+    "outputs": {
+      "wide_readings": [
+        {
+          "name": "station",
+          "data_type": "INTEGER",
+          "nullable": true
+        },
+        {
+          "name": "band_low",
+          "data_type": "INTEGER",
+          "nullable": true
+        },
+        {
+          "name": "band_high",
+          "data_type": "INTEGER",
+          "nullable": true
+        }
+      ]
+    },
+    "variants": [
+      {
+        "name": "sparse",
+        "inputs": {
+          "readings": [
+            [
+              1,
+              "low",
+              4
+            ],
+            [
+              1,
+              "high",
+              7
+            ],
+            [
+              2,
+              "high",
+              null
+            ],
+            [
+              3,
+              "low",
+              0
+            ]
+          ]
+        },
+        "expected": {
+          "wide_readings": [
+            [
+              1,
+              4,
+              7
+            ],
+            [
+              2,
+              null,
+              null
+            ],
+            [
+              3,
+              0,
+              null
+            ]
+          ]
+        }
+      },
+      {
+        "name": "one_group",
+        "inputs": {
+          "readings": [
+            [
+              7,
+              "low",
+              null
+            ],
+            [
+              7,
+              "high",
+              9
+            ]
+          ]
+        },
+        "expected": {
+          "wide_readings": [
+            [
+              7,
+              null,
+              9
+            ]
+          ]
+        }
+      }
+    ],
+    "negative": false,
+    "finals": [
+      "wide_readings"
+    ],
+    "output_sources": {
+      "wide_readings": "mart.wide_readings"
+    },
+    "archive_sha256": "d33c98135207e01f063ef669396cb2cbbb517b7e087508ba90d48d471c502420"
+  },
+  {
+    "id": "trial_format",
+    "title": "User-defined FORMAT and character storage",
+    "sources": {
+      "P1": "proc format; value badge 0='zero' 1-3='small' other='other'; run;",
+      "P2": "data mart.badges(keep=id label); length label $5; set source.levels; label=put(level,badge.); run;"
+    },
+    "source": "proc format; value badge 0='zero' 1-3='small' other='other'; run;\ndata mart.badges(keep=id label); length label $5; set source.levels; label=put(level,badge.); run;",
+    "inputs": {
+      "levels": {
+        "columns": [
+          {
+            "name": "id",
+            "data_type": "INTEGER",
+            "nullable": false
+          },
+          {
+            "name": "level",
+            "data_type": "INTEGER",
+            "nullable": true
+          }
+        ],
+        "unique_keys": []
+      }
+    },
+    "outputs": {
+      "badges": [
+        {
+          "name": "id",
+          "data_type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "label",
+          "data_type": "VARCHAR(5)",
+          "nullable": true
+        }
+      ]
+    },
+    "variants": [
+      {
+        "name": "edge",
+        "inputs": {
+          "levels": [
+            [
+              1,
+              null
+            ],
+            [
+              2,
+              -1
+            ],
+            [
+              3,
+              0
+            ],
+            [
+              4,
+              1
+            ],
+            [
+              5,
+              3
+            ],
+            [
+              6,
+              4
+            ]
+          ]
+        },
+        "expected": {
+          "badges": [
+            [
+              1,
+              "other"
+            ],
+            [
+              2,
+              "other"
+            ],
+            [
+              3,
+              "zero"
+            ],
+            [
+              4,
+              "small"
+            ],
+            [
+              5,
+              "small"
+            ],
+            [
+              6,
+              "other"
+            ]
+          ]
+        }
+      },
+      {
+        "name": "second",
+        "inputs": {
+          "levels": [
+            [
+              6,
+              4
+            ],
+            [
+              5,
+              3
+            ],
+            [
+              4,
+              1
+            ],
+            [
+              3,
+              0
+            ],
+            [
+              2,
+              -1
+            ],
+            [
+              1,
+              null
+            ]
+          ]
+        },
+        "expected": {
+          "badges": [
+            [
+              6,
+              "other"
+            ],
+            [
+              5,
+              "small"
+            ],
+            [
+              4,
+              "small"
+            ],
+            [
+              3,
+              "zero"
+            ],
+            [
+              2,
+              "other"
+            ],
+            [
+              1,
+              "other"
+            ]
+          ]
+        }
+      },
+      {
+        "name": "empty",
+        "inputs": {
+          "levels": []
+        },
+        "expected": {
+          "badges": []
+        }
+      }
+    ],
+    "negative": false,
+    "finals": [
+      "badges"
+    ],
+    "output_sources": {
+      "badges": "mart.badges"
+    },
+    "archive_sha256": "5982a3dadaaf19142b2c555d19f1d73d764f4e297a46ec2da9b7be997ae77567"
+  },
+  {
+    "id": "trial_multiset",
+    "title": "UNION ALL preserves duplicates and NULL",
+    "sources": {
+      "P1": "proc sql; create table mart.combined as select id, units from source.batch_a union all select id, units from source.batch_b; quit;"
+    },
+    "source": "proc sql; create table mart.combined as select id, units from source.batch_a union all select id, units from source.batch_b; quit;",
+    "inputs": {
+      "batch_a": {
+        "columns": [
+          {
+            "name": "id",
+            "data_type": "INTEGER",
+            "nullable": false
+          },
+          {
+            "name": "units",
+            "data_type": "INTEGER",
+            "nullable": true
+          }
+        ],
+        "unique_keys": []
+      },
+      "batch_b": {
+        "columns": [
+          {
+            "name": "id",
+            "data_type": "INTEGER",
+            "nullable": false
+          },
+          {
+            "name": "units",
+            "data_type": "INTEGER",
+            "nullable": true
+          }
+        ],
+        "unique_keys": []
+      }
+    },
+    "outputs": {
+      "combined": [
+        {
+          "name": "id",
+          "data_type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "units",
+          "data_type": "INTEGER",
+          "nullable": true
+        }
+      ]
+    },
+    "variants": [
+      {
+        "name": "duplicate",
+        "inputs": {
+          "batch_a": [
+            [
+              1,
+              null
+            ],
+            [
+              1,
+              null
+            ],
+            [
+              2,
+              4
+            ]
+          ],
+          "batch_b": [
+            [
+              1,
+              null
+            ],
+            [
+              2,
+              4
+            ],
+            [
+              3,
+              0
+            ]
+          ]
+        },
+        "expected": {
+          "combined": [
+            [
+              1,
+              null
+            ],
+            [
+              1,
+              null
+            ],
+            [
+              2,
+              4
+            ],
+            [
+              1,
+              null
+            ],
+            [
+              2,
+              4
+            ],
+            [
+              3,
+              0
+            ]
+          ]
+        }
+      },
+      {
+        "name": "one_side",
+        "inputs": {
+          "batch_a": [],
+          "batch_b": [
+            [
+              1,
+              null
+            ],
+            [
+              1,
+              null
+            ]
+          ]
+        },
+        "expected": {
+          "combined": [
+            [
+              1,
+              null
+            ],
+            [
+              1,
+              null
+            ]
+          ]
+        }
+      },
+      {
+        "name": "empty",
+        "inputs": {
+          "batch_a": [],
+          "batch_b": []
+        },
+        "expected": {
+          "combined": []
+        }
+      }
+    ],
+    "negative": false,
+    "finals": [
+      "combined"
+    ],
+    "output_sources": {
+      "combined": "mart.combined"
+    },
+    "archive_sha256": "97ecef2ad7721a8e5ea21b14109e251d1afca7bec98afbcedc31b3b14efd728d"
+  },
+  {
+    "id": "trial_unknown_array",
+    "title": "External array bound must be resolved",
+    "sources": {
+      "P1": "%let n=%sysget(SYNTHETIC_ARRAY_BOUND); data mart.output; set source.values_in; array x[&n.] a b; run;"
+    },
+    "source": "%let n=%sysget(SYNTHETIC_ARRAY_BOUND); data mart.output; set source.values_in; array x[&n.] a b; run;",
+    "inputs": {
+      "values_in": {
+        "columns": [
+          {
+            "name": "id",
+            "data_type": "INTEGER",
+            "nullable": false
+          },
+          {
+            "name": "a",
+            "data_type": "INTEGER",
+            "nullable": true
+          },
+          {
+            "name": "b",
+            "data_type": "INTEGER",
+            "nullable": true
+          }
+        ],
+        "unique_keys": []
+      }
+    },
+    "outputs": {
+      "output": [
+        {
+          "name": "id",
+          "data_type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "a",
+          "data_type": "INTEGER",
+          "nullable": true
+        },
+        {
+          "name": "b",
+          "data_type": "INTEGER",
+          "nullable": true
+        }
+      ]
+    },
+    "variants": [
+      {
+        "name": "unresolved",
+        "inputs": {
+          "values_in": [
+            [
+              1,
+              2,
+              3
+            ]
+          ]
+        },
+        "expected": null
+      }
+    ],
+    "negative": true,
+    "finals": [
+      "output"
+    ],
+    "output_sources": {
+      "output": "mart.output"
+    },
+    "archive_sha256": "f4de0016481bd430316b7da03b1befb2648f9c3acb189a3811697a0fe10aecb2"
   }
 ]

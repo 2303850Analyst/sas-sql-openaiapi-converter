@@ -1,0 +1,1 @@
+proc sql; create table mart.combined as select id, units from source.batch_a union all select id, units from source.batch_b; quit;

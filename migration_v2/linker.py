@@ -7,6 +7,8 @@ from sqlglot.optimizer.qualify import qualify
 from sqlglot.optimizer.scope import traverse_scope
 from .contracts import digest
 from .verification import allowed_node, table_key
+from .clickhouse_nulls import projection_nullability, preserve_clickhouse_nullable
+from .greenplum import columns_for, paired_statements, valid_definition
 
 VERSION="linked-code-review-3"
 DIALECTS={"greenplum":"postgres","postgresql":"postgres","clickhouse":"clickhouse"}
@@ -179,7 +181,7 @@ def date_interval_returns_timestamp(value):
     return isinstance(value, (exp.Add, exp.Sub)) and any(isinstance(v, exp.Interval) for v in value.iter_expressions())
 
 
-def link(plan, artifacts, target, obligations=(), source="", *, predecessors=(), require_all=True,expected_writes=None,lag_order=None):
+def link(plan, artifacts, target, obligations=(), source="", *, predecessors=(), predecessor_nullable=None, predecessor_nonnull=None, require_all=True,expected_writes=None,lag_order=None):
     from app.sas_lexer import lex_statements
     dialect=DIALECTS[target]
     statements,_ = lex_statements(source)
@@ -202,6 +204,19 @@ def link(plan, artifacts, target, obligations=(), source="", *, predecessors=(),
                      for b in plan["bindings"] if not b.get("members")}
     known_nonnull.update({name:{c["name"] for c in outputs[name].get("column_metadata", []) if c.get("nullable") is False}
                           for name in predecessors if name in outputs and name not in known_nonnull})
+    known_nullable = {".".join(b["target"]["parts"]): {c["name"] for c in b["columns"] if c.get("nullable") is True}
+                      for b in plan["bindings"] if not b.get("members")}
+    for name in predecessors:
+        if name in outputs:
+            known_nullable.setdefault(name, set()).update(
+                c["name"] for c in outputs[name].get("column_metadata", []) if c.get("nullable") is True)
+    for name, columns in (predecessor_nullable or {}).items():
+        if name in predecessors:
+            known_nullable.setdefault(name, set()).update(columns)
+    for name, columns in (predecessor_nonnull or {}).items():
+        if name in predecessors:
+            known_nonnull.setdefault(name, set()).update(columns)
+            known_nullable.setdefault(name, set()).difference_update(columns)
     written=set();issues=[];inventory=[]
     lag_order_found = False
     def add(code,msg,loc):issues.append(finding(code,msg,location=loc))
@@ -209,7 +224,8 @@ def link(plan, artifacts, target, obligations=(), source="", *, predecessors=(),
         try:trees=sqlglot.parse(artifact["sql"],read=dialect,error_level="RAISE",error_message_context=0)
         except Exception:
             add("sql_parse_error","SQL не разбирается для выбранного диалекта",artifact["name"]);continue
-        for index,tree in enumerate(trees):
+        statement_pairs = paired_statements(trees) if target == "greenplum" else ((i,t,False) for i,t in enumerate(trees))
+        for index,tree,typed_pair in statement_pairs:
             loc=artifact["name"]+":"+str(index+1)
             read_tables=set()
             if tree is None:
@@ -228,13 +244,19 @@ def link(plan, artifacts, target, obligations=(), source="", *, predecessors=(),
                 add("ignore_nulls_not_supported","IGNORE NULLS недоступен в проверяемом профиле",loc)
             if target!="clickhouse" and any(lag_in_frame(n) for n in tree.find_all(exp.Anonymous)):
                 add("clickhouse_window_not_supported","lagInFrame доступен только в ClickHouse",loc)
-            if any(isinstance(n,exp.Func) and not safe_expression(n) and not
-                   (target=='clickhouse' and (isinstance(n.parent,exp.EngineProperty)
-                    or empty_tuple(n) and isinstance(n.parent,exp.Ordered)
-                    and isinstance(n.parent.parent,exp.Order) and isinstance(n.parent.parent.parent,exp.Properties)))
-                   for n in tree.walk()):
-                add("unapproved_function","Функция не входит в разрешённый набор",loc)
+            rejected = {n.name if isinstance(n, exp.Anonymous) else n.sql_name()
+                        for n in tree.walk() if isinstance(n, exp.Func) and not safe_expression(n) and not
+                        (target == "clickhouse" and (isinstance(n.parent, exp.EngineProperty)
+                         or empty_tuple(n) and isinstance(n.parent, exp.Ordered)
+                         and isinstance(n.parent.parent, exp.Order) and isinstance(n.parent.parent.parent, exp.Properties)))}
+            if rejected:
+                version = plan.get("target_version", "не задана")
+                add("unapproved_function", f"{target} {version}: проверка не подтверждает функцию "
+                    + ", ".join(sorted(rejected)), loc)
             if action=="create":
+                gp_columns = columns_for(outputs[name]) if target == "greenplum" else []
+                if (gp_columns or typed_pair) and (not typed_pair or not gp_columns or not valid_definition(tree, gp_columns)):
+                    add("greenplum_physical_schema", "Greenplum требует явное создание с точными типами и NOT NULL: " + name, loc)
                 if tree.args.get("kind")!="TABLE" or tree.args.get("replace") or tree.args.get("exists"):
                     add("create_option_not_supported","Нужен явный CREATE TABLE без скрытой замены/пропуска",loc)
                 if name in available:add("duplicate_write","Таблица уже существует в этой цепочке: "+name,loc)
@@ -259,6 +281,8 @@ def link(plan, artifacts, target, obligations=(), source="", *, predecessors=(),
             # rejected explicitly, even if an optimizer could invent a qualifier.
             query=tree.expression if isinstance(tree.expression,(exp.Select,exp.Union,exp.Intersect,exp.Except)) else None
             nonnull = set()
+            nullable = set()
+            nullable_ddl_fields = []
             if query is not None:
                 if lag_order:
                     lag_order_found |= check_lag_order(query, lag_order)
@@ -293,6 +317,12 @@ def link(plan, artifacts, target, obligations=(), source="", *, predecessors=(),
                     resolved=qualify(resolution_query,dialect=dialect,schema=schema,validate_qualify_columns=True,identify=False)
                     if target == "clickhouse" and action == "create":
                         nonnull = projection_nonnull(resolved, known_nonnull)
+                        join_nulls = any(isinstance(setting, exp.EQ)
+                            and isinstance(setting.this, exp.Column) and setting.this.name.casefold() == "join_use_nulls"
+                            and isinstance(setting.expression, exp.Literal) and setting.expression.this == "1"
+                            for setting in query.args.get("settings") or [])
+                        nullable, proven = projection_nullability(resolved, known_nullable, known_nonnull, join_nulls)
+                        nonnull.update(proven)
                     if action=="create" and resolved.named_selects!=outputs[name]["columns"]:
                         add("output_columns_mismatch","Нарушен полный перечень/порядок полей: "+name,loc)
                     if action == "create":
@@ -327,16 +357,33 @@ def link(plan, artifacts, target, obligations=(), source="", *, predecessors=(),
                 if not queries and table_key(table) not in available:add("unbound_read","Необъявленный источник",loc)
             if target == "clickhouse" and action == "create":
                 clickhouse_storage(outputs[name], props.expressions if props else [], nonnull, add, loc)
+                declared = {c["name"]: c.get("nullable") for c in outputs[name].get("column_metadata", [])}
+                nullable.update(field for field, required in declared.items() if required is True)
+                for field in sorted(nullable):
+                    if declared.get(field) is False:
+                        add("nullable_source_conflicts_with_contract", "В результате может появиться NULL: " + field, loc)
+                if isinstance(tree.this, exp.Schema):
+                    for col in tree.this.expressions:
+                        if (isinstance(col, exp.ColumnDef) and isinstance(col.kind, exp.DataType)
+                                and col.name in nullable and col.kind.args.get("nullable") is not True):
+                            if declared.get(col.name) is not False:
+                                nullable_ddl_fields.append(col.name)
+                            add("physical_nullable_output_required", "DDL должен сохранять NULL: " + col.name, loc)
+                known_nullable[name] = nullable - nonnull
                 known_nonnull[name] = nonnull
             if action=="drop":
                 available.pop(name,None)
                 known_nonnull.pop(name,None)
+                known_nullable.pop(name,None)
             else:
                 if action in {"insert","update"}:
                     known_nonnull.pop(name,None)
                 available[name]=output_schema(outputs[name]);written.add(name)
             inventory.append({"artifact":artifact["name"],"statement":index+1,"action":action,"table":name,
-                "reads":sorted(read_tables),"columns":outputs[name]['columns'],"storage":outputs[name]['storage']})
+                "reads":sorted(read_tables),"columns":outputs[name]['columns'],"storage":outputs[name]['storage'],
+                **({"nullable_columns":sorted(nullable - nonnull)} if nullable - nonnull else {}),
+                **({"nonnull_columns":sorted(nonnull)} if nonnull else {}),
+                **({"nullable_ddl_fields":nullable_ddl_fields} if nullable_ddl_fields else {})})
     for name,output in outputs.items():
         if require_all and name in expected and (name not in written or (output["role"]=="final" and name not in available)):
             issues.append(finding("missing_output","Не получен обязательный результат "+name))

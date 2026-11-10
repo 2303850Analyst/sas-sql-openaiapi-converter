@@ -130,7 +130,7 @@ def main():
         window.geometry("590x270")
         window.resizable(False, False)
         tk.Label(window, text="SAS → SQL · локальный этап V2", font=("Segoe UI", 17, "bold")).pack(pady=(25, 12))
-        tk.Label(window, text="Оригиналы EGP, назначения источников и проверка SQL.\nМодель и тестовая база включаются отдельным локальным профилем.\nЗакрытие этого окна остановит приложение.", font=("Segoe UI", 11)).pack(pady=8)
+        tk.Label(window, text="Оригиналы EGP, назначения источников и проверка SQL.\nПодключение модели задаётся в разделе «Настройки» в приложении.\nЗакрытие этого окна остановит приложение.", font=("Segoe UI", 11)).pack(pady=8)
         tk.Button(window, text="Открыть приложение", command=lambda: webbrowser.open(url + "/#" + token)).pack(pady=15)
         webbrowser.open(url + "/#" + token)
         window.mainloop()

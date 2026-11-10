@@ -1,7 +1,7 @@
 {
   "synthetic_only": true,
-  "cases": 6,
-  "datasets": 19,
+  "cases": 14,
+  "datasets": 40,
   "seed": 8237,
   "archives": {
     "ex_observatory": "2f07f7fea75cd9f20cd1d517c4afaf88ed0ac5c5750ab8a9bfb980e6988a374c",
@@ -9,9 +9,17 @@
     "ex_library": "a6ff767933ff916d09dc7f44d18c48aa47f6a07c8c403b799f1d5c8ef151ad44",
     "ex_dispatch": "0d8ae98aa887f20ccd5d5409a957eddbd1922016460138ac1e4c47cc3ab06d26",
     "ex_pulses": "03e8a0a3e8b783576843e317eab6b2fa8c4201d1cd0f62faec81e2010545b098",
-    "ex_unknown": "3552df779066b87c06173cb22f9446dff10fed5623c9164d12a7066293da5de5"
+    "ex_unknown": "3552df779066b87c06173cb22f9446dff10fed5623c9164d12a7066293da5de5",
+    "trial_options": "ce1bbfd32533399dc74c0878563c29c34350bc69ffab682b3cc318306812900e",
+    "trial_retain": "8b8b7c4f4698e9928d6d28f5f2df9a5b43d65ae2759cd7ee675a62fe79da601d",
+    "trial_array": "2f039c5dc00ddbc51a955e805454f73644bc1e66dfde9479c74252f13f754630",
+    "trial_select_into": "70a400444c362b7ccb4254595a91925d8180c1b817c0fc63526fb05bb0c976d2",
+    "trial_transpose": "d33c98135207e01f063ef669396cb2cbbb517b7e087508ba90d48d471c502420",
+    "trial_format": "5982a3dadaaf19142b2c555d19f1d73d764f4e297a46ec2da9b7be997ae77567",
+    "trial_multiset": "97ecef2ad7721a8e5ea21b14109e251d1afca7bec98afbcedc31b3b14efd728d",
+    "trial_unknown_array": "f4de0016481bd430316b7da03b1befb2648f9c3acb189a3811697a0fe10aecb2"
   },
-  "oracle_sha256": "661e872edd2fd85501d210b05ce967515953a5b3b409de904d08e0bb8116030b",
-  "cases_sha256": "fdafd41a15ff8459f3e99fe066d9c1729c5753dd2efc4fd4ec1101afc0d4ce08",
+  "oracle_sha256": "754f756d1040ef9122d60187f23a0a4477f7e2567f8aae98be9a0c35f19012e0",
+  "cases_sha256": "32490bc9ec15cb101ffcb970b7b4c4615d8b5354cee4f2d1b167840376813f2d",
   "native_enterprise_guide_verified": false
 }

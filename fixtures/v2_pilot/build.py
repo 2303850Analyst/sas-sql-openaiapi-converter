@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parent
 
 
 def archive():
-    source = (ROOT / "scenario.sas.txt").read_bytes()
+    source = (ROOT / "scenario.sas.txt").read_bytes().replace(b"\r\n", b"\n")
     small = b'proc sql; create table active_ids as select station_id from source.stations where active=1; quit;'
     programs = [("CodeTask-pipeline", "Synthetic quality pipeline", source),
                 ("CodeTask-ctas", "Synthetic active stations", small)]
