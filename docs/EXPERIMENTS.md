@@ -1,3 +1,5 @@
 # Эксперименты
 
-См. expansion/coverage_baseline.csv, expansion/coverage_gaps.csv и expansion/synthetic_corpus_manifest.json. Выпуски, SQL и журналы индексируются в локальном доказательном ZIP.
+История серий и их знаменатели сохранены в [хронологии](HISTORY.md). Способ сравнения и требования к протоколу описаны в [методике](TEST_PROTOCOL.md). [Отчёт 0.3.0](TRIAL_VALIDATION.md) содержит матрицу текущей поставки.
+
+[Манифест](../expansion/synthetic_corpus_manifest.json), [базовое покрытие](../expansion/coverage_baseline.csv), [открытые пробелы](../expansion/coverage_gaps.csv) и [результаты](../expansion/results) относятся к синтетическим экспериментам. В таблицах отдельно учитываются заблокированные профили, диагностические контроли и исполненные принятые пакеты. Сравнение долей разных этапов требует одинакового знаменателя и корпуса.
