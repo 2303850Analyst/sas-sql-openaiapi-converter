@@ -10,5 +10,5 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
-      - run: python -m pip install --require-hashes -r packaging_v2/requirements-test.lock
+      - run: python -m pip install --no-index --find-links vendor/wheelhouse --require-hashes -r packaging_v2/requirements-test.lock
       - run: python -m pytest tests_v2 -q
