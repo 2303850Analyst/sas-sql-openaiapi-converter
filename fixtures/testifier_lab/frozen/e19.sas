@@ -1,0 +1,1 @@
+%macro build; %do i=1 %to 3; data work.t&i.; set source.events; value=x*&i.; keep id value; run; %end; data mart.e19_result; set work.t1 work.t2 work.t3; run; %mend; %build;

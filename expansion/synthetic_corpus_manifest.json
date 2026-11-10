@@ -1,0 +1,17 @@
+{
+  "synthetic_only": true,
+  "cases": 6,
+  "datasets": 19,
+  "seed": 8237,
+  "archives": {
+    "ex_observatory": "2f07f7fea75cd9f20cd1d517c4afaf88ed0ac5c5750ab8a9bfb980e6988a374c",
+    "ex_acoustic": "a8f40d03c38dbe04429bdecee2ba333b4b5696a656b5233ffd02f644d91f21b7",
+    "ex_library": "a6ff767933ff916d09dc7f44d18c48aa47f6a07c8c403b799f1d5c8ef151ad44",
+    "ex_dispatch": "0d8ae98aa887f20ccd5d5409a957eddbd1922016460138ac1e4c47cc3ab06d26",
+    "ex_pulses": "03e8a0a3e8b783576843e317eab6b2fa8c4201d1cd0f62faec81e2010545b098",
+    "ex_unknown": "3552df779066b87c06173cb22f9446dff10fed5623c9164d12a7066293da5de5"
+  },
+  "oracle_sha256": "661e872edd2fd85501d210b05ce967515953a5b3b409de904d08e0bb8116030b",
+  "cases_sha256": "fdafd41a15ff8459f3e99fe066d9c1729c5753dd2efc4fd4ec1101afc0d4ce08",
+  "native_enterprise_guide_verified": false
+}

@@ -1,0 +1,1 @@
+proc sql; create table mart.sky_summary as select sector, count(*) as n, count(distinct reading) as uniq, sum(reading) as total_reading, avg(reading) as mean_reading, count(reading) as present from source.readings group by sector having count(*)>0; quit;

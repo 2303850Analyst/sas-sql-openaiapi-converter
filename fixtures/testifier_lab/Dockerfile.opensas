@@ -1,0 +1,13 @@
+FROM alpine:3.22.1 AS build
+RUN apk add --no-cache curl xz
+RUN curl -fsSL https://ziglang.org/download/0.16.0/zig-x86_64-linux-0.16.0.tar.xz -o /tmp/zig.tar.xz \
+ && echo '70e49664a74374b48b51e6f3fdfbf437f6395d42509050588bd49abe52ba3d00  /tmp/zig.tar.xz' | sha256sum -c - \
+ && mkdir /zig && tar -xJf /tmp/zig.tar.xz -C /zig --strip-components=1
+COPY vendor/opensas-testifier /src
+WORKDIR /src
+RUN /zig/zig build -Doptimize=ReleaseSafe -j2
+FROM alpine:3.22.1
+COPY --from=build /src/zig-out/bin/opensas /usr/local/bin/opensas
+USER 65534:65534
+WORKDIR /work
+ENTRYPOINT ["/usr/local/bin/opensas"]

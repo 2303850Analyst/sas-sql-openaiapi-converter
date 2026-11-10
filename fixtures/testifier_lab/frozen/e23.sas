@@ -1,0 +1,1 @@
+%macro select_positive; proc sql noprint; select count(*) into :n from source.events where x>0; quit; %if &n>0 %then %do; data mart.e23_result; set source.events; if x>0; run; %end; %else %do; data mart.e23_result; set source.events(obs=0); run; %end; %mend; %select_positive;

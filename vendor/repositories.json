@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "sources": [
+    {
+      "name": "vscode-sas-extension",
+      "revision": "e8cea19c6c502fb42a8212e9c60f6064480fe2c4",
+      "url": "https://github.com/sassoftware/vscode-sas-extension",
+      "license": "Apache-2.0",
+      "role": "structural_parser_and_language_catalog_candidate",
+      "archive": "repositories/vscode-sas-extension/vscode-sas-extension.zip",
+      "sha256": "f4f1619e1e4fe6965b4ca25f45d08069487bd7b9f032619e6bcc98c4458a5802",
+      "runtime_active": false,
+      "modifications": "none; experimental SQL/RUN patch is shipped separately"
+    },
+    {
+      "name": "sparkshift",
+      "revision": "ae349656e2cbb16d6e8a5c8d10bc29d9a85e8159",
+      "url": "https://github.com/ArttGrantollii/sparkshift",
+      "license": "Apache-2.0",
+      "role": "reference_algorithms_not_runtime",
+      "archive": "repositories/sparkshift/sparkshift.zip",
+      "sha256": "9fc0fc02a25d6e414db24ad0b6248808d5720f5c4c685f2b051893295eefedfa",
+      "runtime_active": false,
+      "modifications": "none"
+    },
+    {
+      "name": "pyegp-parser",
+      "revision": "5819ed9eeb9c4d341cb0b99ab5fa8758a4d03c25",
+      "url": "https://github.com/lamiskin/pyegp-parser",
+      "license": "MIT",
+      "role": "independent_inventory_candidate_not_runtime",
+      "archive": "repositories/pyegp-parser/pyegp-parser.zip",
+      "sha256": "1399a58d719c8bb02f94cdcd828259cb452d6302e4e2596f019f3638a0baa654",
+      "runtime_active": false,
+      "modifications": "none"
+    }
+  ]
+}

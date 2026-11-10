@@ -1,0 +1,1 @@
+proc summary data=source.events nway missing; class g; var x; output out=mart.e17_result(drop=_type_ _freq_) sum=total mean=average n=present; run;

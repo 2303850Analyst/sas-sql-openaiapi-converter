@@ -1,0 +1,1 @@
+data mart.e18_result(keep=id amount); set source.events; amount=input(code,?? comma12.2); run;

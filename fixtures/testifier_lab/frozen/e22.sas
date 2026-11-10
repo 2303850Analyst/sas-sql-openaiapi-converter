@@ -1,0 +1,1 @@
+data mart.e22_result(keep=id joined upper_code); length joined $90 upper_code $40; set source.events; joined=catx('|',a,b); upper_code=upcase(a); run;

@@ -1,0 +1,58 @@
+/* Synthetic Observatory quality pilot. No corporate code or data. */
+%let window_start='28FEB2024:00:00:00'dt;
+%let window_end='03MAR2024:00:00:00'dt;
+
+data work.cleaned(keep=event_id station_id sensor observed_at measure month kind)
+     work.rejected(keep=event_id reason);
+  length kind $12 reason $16;
+  set source.readings(rename=(value=measure));
+  if observed_at >= &window_start and observed_at < &window_end;
+  month=intnx('month',datepart(observed_at),0,'b');
+  format month yymmdd10.;
+  if missing(station_id) then do; reason='no station'; output work.rejected; end;
+  else if missing(measure) then do; reason='missing measure'; output work.rejected; end;
+  else do;
+    if measure <= 0 then kind='non_positive'; else kind='positive';
+    output work.cleaned;
+  end;
+run;
+
+proc sort data=work.cleaned out=work.ordered;
+  by station_id sensor observed_at descending event_id;
+run;
+data work.winners;
+  set work.ordered;
+  by station_id sensor observed_at descending event_id;
+  if first.observed_at;
+run;
+
+proc sort data=source.calibration out=work.cal_order;
+  by station_id sensor descending calibration_seq;
+run;
+proc sort data=work.cal_order out=work.cal_latest nodupkey equals;
+  by station_id sensor;
+run;
+
+data work.adjusted(keep=event_id station_id sensor observed_at month adjusted);
+  merge work.winners(in=a) work.cal_latest(in=b keep=station_id sensor bias);
+  by station_id sensor;
+  if a;
+  adjusted=sum(measure,coalesce(bias,0));
+run;
+
+%macro make_monthly(active_flag=1);
+proc sql;
+  create table work.monthly_kpi as
+  select m.station_id,m.month,m.reading_count,m.total_value,t.reading_target,
+         case when t.station_id is null then 1 else 0 end as missing_target
+  from (
+    select a.station_id,a.month,count(*) as reading_count,sum(a.adjusted) as total_value
+    from work.adjusted a inner join source.stations s
+      on a.station_id=s.station_id
+    where s.active=&active_flag
+    group by a.station_id,a.month
+  ) m left join source.targets t
+    on m.station_id=t.station_id and m.month=t.month;
+quit;
+%mend;
+%make_monthly(active_flag=1);

@@ -1,0 +1,15 @@
+{
+  "database": {
+    "host": "127.0.0.1",
+    "port": 55438,
+    "dbname": "observatory_lab",
+    "user": "migration_validator",
+    "password_env": "SAS_MIGRATION_DB_PASSWORD",
+    "sslmode": "disable",
+    "target": "postgresql",
+    "version_prefix": "17.10",
+    "reference_schemas": ["sky_expected"],
+    "statement_timeout_ms": 15000,
+    "max_rows": 10000
+  }
+}

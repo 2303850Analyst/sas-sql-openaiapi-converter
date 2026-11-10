@@ -1,0 +1,2 @@
+%let threshold=3; data work.ready_parcels work.light_parcels; set source.parcels; if missing(weight) or weight<&threshold. then output work.light_parcels; else output work.ready_parcels; run;
+proc sql; create table mart.dispatch_board as select p.id,p.weight,p.zone,z.label from work.ready_parcels p left join source.zones z on p.zone=z.zone; quit;

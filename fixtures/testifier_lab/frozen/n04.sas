@@ -1,0 +1,1 @@
+%let cutoff=%sysget(MISSING_SYNTHETIC_INPUT); data mart.n04_result; set source.events; if x>&cutoff.; run;

@@ -1,0 +1,81 @@
+﻿case,family_or_variant,profile,stage,origin,datasets,matched,candidate
+t01,"Numeric missing, comparisons, SUM versus addition",opensas,B1,opensas,4,4,archive; each native variant has provenance
+t01,"Numeric missing, comparisons, SUM versus addition",postgresql,B1,saved_sql,4,1,archive; each native variant has provenance
+t02,Character missing and trailing versus leading blanks,opensas,B1,opensas,4,4,archive; each native variant has provenance
+t02,Character missing and trailing versus leading blanks,postgresql,B1,saved_sql,4,4,archive; each native variant has provenance
+t03,"Nullable ASC/DESC, ties and FIRST",opensas,B1,opensas,4,4,archive; each native variant has provenance
+t04,Many-to-one MERGE with missing composite BY keys,opensas,B1,opensas,4,4,archive; each native variant has provenance
+t05,Many-to-many MERGE retains exhausted side; IN= is group state,opensas,B1,opensas,4,4,archive; each native variant has provenance
+t06,MERGE common variable overwritten by later observations,opensas,B1,opensas,4,4,archive; each native variant has provenance
+t07,SUM statement reset at FIRST and explicit row order,opensas,B1,opensas,4,4,archive; each native variant has provenance
+t07,SUM statement reset at FIRST and explicit row order,postgresql,B1,saved_sql,4,4,archive; each native variant has provenance
+t08,"Conditional LAG queue, including a missing queued value",opensas,B1,opensas,4,4,archive; each native variant has provenance
+t08,"Conditional LAG queue, including a missing queued value",clickhouse,B1,t08_diagnostic,5,5,archive; each native variant has provenance
+t08,"Conditional LAG queue, including a missing queued value",postgresql,B1,t08_diagnostic,5,5,archive; each native variant has provenance
+t09,WHERE before assignments; sequential IFs see updated values,opensas,B1,opensas,4,4,archive; each native variant has provenance
+t10,"Macro argument, leap day, INTNX DATEPART and grouped missing values",opensas,B1,opensas,4,4,archive; each native variant has provenance
+t11,PUT Z5 and DATA step LENGTH truncation,opensas,B1,opensas,4,4,archive; each native variant has provenance
+t11,PUT Z5 and DATA step LENGTH truncation,postgresql,B1,saved_sql,4,4,archive; each native variant has provenance
+t12,SET concatenation keeps duplicates; RENAME and DROP,opensas,B1,opensas,4,4,archive; each native variant has provenance
+t12,SET concatenation keeps duplicates; RENAME and DROP,postgresql,B1,saved_sql,4,4,archive; each native variant has provenance
+n01,Cannot recover special .A after its tag is lost,opensas,B1,opensas,4,0,archive; each native variant has provenance
+n02,NODUPKEY EQUALS without recoverable input observation order,opensas,B1,opensas,4,0,archive; each native variant has provenance
+e13,"Multiple explicit OUTPUT routes, missing and DELETE",opensas,B1,opensas,4,4,archive; each native variant has provenance
+e13,"Multiple explicit OUTPUT routes, missing and DELETE",postgresql,B1,saved_sql,4,4,archive; each native variant has provenance
+e14,ARRAY + SUM + N + NMISS with all missing,opensas,B1,opensas,4,4,archive; each native variant has provenance
+e15,"PROC FORMAT and PUT, including ordinary numeric missing",opensas,B1,opensas,4,0,archive; each native variant has provenance
+e16,"PROC SQL GROUP BY, HAVING, COUNT DISTINCT, AVG and missing",clickhouse,B1,live,4,2,archive; each native variant has provenance
+e16,"PROC SQL GROUP BY, HAVING, COUNT DISTINCT, AVG and missing",postgresql,B1,live,4,4,archive; each native variant has provenance
+e16,"PROC SQL GROUP BY, HAVING, COUNT DISTINCT, AVG and missing",opensas,B1,opensas,4,4,archive; each native variant has provenance
+e16,"PROC SQL GROUP BY, HAVING, COUNT DISTINCT, AVG and missing",postgresql,B1,saved_sql,4,4,archive; each native variant has provenance
+e17,PROC SUMMARY NWAY MISSING and multiple statistics,opensas,B1,opensas,4,4,archive; each native variant has provenance
+e17,PROC SUMMARY NWAY MISSING and multiple statistics,postgresql,B1,saved_sql,4,4,archive; each native variant has provenance
+e18,INPUT COMMA informat and suppressed invalid conversion,opensas,B1,opensas,4,4,archive; each native variant has provenance
+e19,Macro DO unrolling and concatenation of every intermediate table,opensas,B1,opensas,4,4,archive; each native variant has provenance
+e19,Macro DO unrolling and concatenation of every intermediate table,postgresql,B1,saved_sql,4,4,archive; each native variant has provenance
+e20,DATA then APPEND FORCE with a missing source column,postgresql,B1,live_diagnostic,4,4,archive; each native variant has provenance
+e20,DATA then APPEND FORCE with a missing source column,opensas,B1,opensas,4,4,archive; each native variant has provenance
+e21,Date arithmetic across leap days and month ends,postgresql,B1,e21_diagnostic,4,4,archive; each native variant has provenance
+e21,Date arithmetic across leap days and month ends,opensas,B1,opensas,4,4,archive; each native variant has provenance
+e21,Date arithmetic across leap days and month ends,postgresql,B1,saved_sql,4,4,archive; each native variant has provenance
+e22,CATX skips blanks and preserves nonblank tabs/NBSP,postgresql,B1,live_diagnostic,4,1,archive; each native variant has provenance
+e22,CATX skips blanks and preserves nonblank tabs/NBSP,opensas,B1,opensas,4,4,archive; each native variant has provenance
+e23,SELECT INTO computed parameter and macro IF with empty alternate,opensas,B1,opensas,4,4,archive; each native variant has provenance
+n03,Unbounded TRANSPOSE ID domain requires an output-domain contract,opensas,B1,opensas,4,0,archive; each native variant has provenance
+n04,Unknown environment value may not be guessed,opensas,B1,opensas,4,0,archive; each native variant has provenance
+flow,"Whole multi-program sales ETL: macro, DQ routes, JOIN, date aggregation and flags",clickhouse,B1,manual,5,5,archive; each native variant has provenance
+flow,"Whole multi-program sales ETL: macro, DQ routes, JOIN, date aggregation and flags",postgresql,B1,manual,5,5,archive; each native variant has provenance
+flow,"Whole multi-program sales ETL: macro, DQ routes, JOIN, date aggregation and flags",opensas,B1,opensas,5,5,archive; each native variant has provenance
+flow,"Whole multi-program sales ETL: macro, DQ routes, JOIN, date aggregation and flags",postgresql,B1,saved_sql,5,5,archive; each native variant has provenance
+e16,,clickhouse,B1,native diagnostic,4,2,bac8a03393571e83a6debb898e29c0d533ea0278f0ccea58a0a584524fb35446
+e16,,clickhouse,B2,native diagnostic,4,4,dcfc8b026bf6e705972e79c84defb7a95b48dde42aa1eca26ee5f4d3ec84de59
+e16,,clickhouse,B2,native diagnostic,4,4,9443d3fbc791963badb7effcc035bb8f1f8c43b77f65f6149286207faf94753b
+t08,,postgresql,E,native diagnostic,5,5,3e2d3c44daec0418b41255b563c267909472f95d42a6cb637ec6ec60b9b975d9
+t08,,postgresql,E,native diagnostic,5,1,7dcf297829c9246d47a33fe8bc9a9b5a639ef54f162d1df659bb541195007870
+t08,,clickhouse,E,native diagnostic,5,5,898ebbe01cb93014d087dc5b7f994b22eb8e92a0ea3c98b05debb1705a5a594d
+e17,,postgresql,E,native diagnostic,0,0,1701d27f10d7d98300b8263032c91becb1ec53a9e0d81935e25992ba1fe651a4
+e17,,postgresql,E,native diagnostic,4,4,1701d27f10d7d98300b8263032c91becb1ec53a9e0d81935e25992ba1fe651a4
+e13,,postgresql,I,native diagnostic,4,4,2174e4dd35aa2fde0693112834dda255a9c8f70591092f39c40e83cbbbe022fb
+e19,,postgresql,I,native diagnostic,4,4,e1fd20358e4b875c8ceddb7518ceb7627e47ab02103d86abc3a2f086a0c829b9
+t11,,postgresql,I,native diagnostic,4,4,18d3e2e631802dadd63f0a90dc9ce120b1415cada06cfe8309a1b72a0436fe84
+t12,,postgresql,I,native diagnostic,4,4,79329c4d9dddba5497c807100312102283ac3eb722f3a07d1ddcfb03afb74064
+t01,,postgresql,I,native diagnostic,4,1,adcf5b5ece26bba3f1ee684729bee1f0536f3b77efd4dbd4a2823b1cc08a22d1
+t02,,postgresql,I,native diagnostic,4,4,3ced3e14fd6c4c01935a647026e9e1bbc2fbc60d2edbda1d68937c14b0dd6f77
+t07,,postgresql,I,native diagnostic,4,4,53de6d49338d365e4fd49b1c47d10349ab33a05f3f10acd80bdd61e574ba420a
+flow,,postgresql,I,native diagnostic,5,5,bde91efb15a8fc216558ef6b97d6fcaf356c758ef8879be1f983fd1823b3a191
+e21,,postgresql,I,native diagnostic,4,4,cf464d95f033c7c8aef8745819013ecdc6fca9475e1e6387135c773c2114fcbb
+e16,,postgresql,I,native diagnostic,4,4,dc2c951ce84db489a9232500ea76a9b8271347264a3a725d1c331e29a63d131b
+e17,,postgresql,I,native diagnostic,4,4,1701d27f10d7d98300b8263032c91becb1ec53a9e0d81935e25992ba1fe651a4
+t01,,postgresql,E,native diagnostic,4,4,8b7530f4d348a6963258e2ddb5576fd966ed6ea69430970fd92bd52581e3d598
+e17,,greenplum,L,fresh arm C,0,0,
+e17,,postgresql,L,fresh arm C,0,0,3ca4b7e21f5b998973c74b1e8fb75aa16f3ddb94ff7ee93a536855b56b368442
+e17,,clickhouse,L,fresh arm C,0,0,
+e16,PROC SQL AVG,greenplum,gate2/native,historical_engineering_assisted,,,594463483bc192373b49ae346eb564d42225a4f65625cb7d64c2f5f6275cf76d
+e16,PROC SQL AVG,postgresql,gate2/native,historical_engineering_assisted,5,5,594463483bc192373b49ae346eb564d42225a4f65625cb7d64c2f5f6275cf76d
+e16,PROC SQL AVG,clickhouse,gate2/native,historical_engineering_assisted,5,5,e92e51743ea65f810d99e43424310e78a9941ed22459dacbecb3934a6ead00ca
+e17,SUMMARY NWAY MISSING,greenplum,gate2/native,historical_engineering_assisted,,,e575fdd882aa43a2382395b40d2be02f00054733168d6c99299651cd5c0df315
+e17,SUMMARY NWAY MISSING,postgresql,gate2/native,historical_engineering_assisted,5,5,3ca4b7e21f5b998973c74b1e8fb75aa16f3ddb94ff7ee93a536855b56b368442
+e17,SUMMARY NWAY MISSING,clickhouse,gate2/native,historical_engineering_assisted,5,5,3777d3ceda84b9ac35d9452765e5de0f2548e64583ae84d2a58cbaa41336b425
+e20,APPEND FORCE,greenplum,gate2/native,historical_engineering_assisted,,,64703e144a3e7cc4d3a2580a586fc58a4e01a85ca01ba7d0e32ff96fc629c0cc
+e20,APPEND FORCE,postgresql,gate2/native,historical_engineering_assisted,4,4,bad6793a868c1866fc2cb1fce736754f23eb5ad04b71180c0ca283a1cfa04e77
+e20,APPEND FORCE,clickhouse,gate2/native,historical_engineering_assisted,4,4,967f71432009c8a421731db9ca5bc13dac7253a150d22648a83542bec07e3161

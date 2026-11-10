@@ -1,0 +1,18 @@
+{
+  "checks": {
+    "same_rules_fingerprint": true,
+    "no_model_or_db": true,
+    "numeric_contract_control_in_html": true,
+    "packaged_js_matches_source": true,
+    "gate1_refuses_unknown_parameter": true,
+    "hitl_resolved_with_new_gate1": true,
+    "paid_generation_refused_without_profile": true,
+    "revision_and_parameter_survive_restart": true,
+    "old_release_marked_stale": true,
+    "stale_draft_keeps_sql_bytes": true
+  },
+  "passed": true,
+  "paid_calls": 0,
+  "rules_fingerprint": "581a166cb121f6b859760fe20e1713274e27628ea9b4519ac593938a08ed143e",
+  "build_sha256": "b9149ce9b06fd5b07ccb46b64573ad605176ec0cc361a6547e97bea1f7e330ae"
+}

@@ -1,0 +1,21 @@
+﻿family,missing_evidence,counterexample,expected
+DATA STEP,wider combinations unverified,specific independent case required,preserve semantics or block
+dataset options,wider combinations unverified,specific independent case required,preserve semantics or block
+SET,wider combinations unverified,specific independent case required,preserve semantics or block
+sort,wider combinations unverified,specific independent case required,preserve semantics or block
+BY group,wider combinations unverified,specific independent case required,preserve semantics or block
+merge/update/modify,wider combinations unverified,specific independent case required,preserve semantics or block
+state,fresh conditional lag with reversed ids,inactive row between two active rows,queue only active observations
+array/loop,wider combinations unverified,specific independent case required,preserve semantics or block
+macro,wider combinations unverified,specific independent case required,preserve semantics or block
+computed macro parameter,wider combinations unverified,specific independent case required,preserve semantics or block
+dynamic code,fixed scope proof,input controls emitted code,safe refusal without an executable artifact
+PROC SQL,wider combinations unverified,specific independent case required,preserve semantics or block
+set ops / append,fresh fixed-run reviewed APPEND,target x absent in DATA; duplicate ids,keep BASE and append typed missing
+aggregation,fresh unseeded translation,nullable groups with decimal and float paths,contract-specific arithmetic
+transpose,wider combinations unverified,specific independent case required,preserve semantics or block
+format,wider combinations unverified,specific independent case required,preserve semantics or block
+numeric,before-storage versus stored AVG,"0.000499999975, scale 9",separate two checkpoints
+text,wider combinations unverified,specific independent case required,preserve semantics or block
+datetime,wider combinations unverified,specific independent case required,preserve semantics or block
+external effects,wider combinations unverified,specific independent case required,preserve semantics or block

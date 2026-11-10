@@ -1,0 +1,7 @@
+station_id,sensor,calibration_seq,bias
+101,THERM,1,0.25
+101,THERM,2,-0.50
+101,WIND,1,0
+102,THERM,1,1.00
+102,WIND,1,-0.25
+106,THERM,1,0.75

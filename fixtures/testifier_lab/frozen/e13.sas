@@ -1,0 +1,1 @@
+data mart.e13_positive mart.e13_other; set source.events; if x>0 then output mart.e13_positive; else output mart.e13_other; run;

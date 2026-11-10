@@ -1,0 +1,20 @@
+name: sas-v2-quality-pilot
+services:
+  postgres:
+    image: postgres@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193
+    pull_policy: never
+    environment:
+      POSTGRES_DB: observatory_lab
+      POSTGRES_USER: observatory_fixture
+      POSTGRES_PASSWORD: observatory_local_demo
+      TZ: UTC
+    ports:
+      - "127.0.0.1:${SAS_V2_PG_PORT:-55438}:5432"
+    volumes:
+      - ./bootstrap.sql:/docker-entrypoint-initdb.d/01-fixture.sql:ro
+      - .:/fixture:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U observatory_fixture -d observatory_lab"]
+      interval: 2s
+      timeout: 3s
+      retries: 20

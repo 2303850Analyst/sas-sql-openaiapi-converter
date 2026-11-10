@@ -1,0 +1,1 @@
+proc sql; create table mart.e16_result as select g,count(*) as n,count(x) as present,count(distinct x) as distinct_x,sum(x) as total,avg(x) as average from source.events group by g having count(*)>=1; quit;

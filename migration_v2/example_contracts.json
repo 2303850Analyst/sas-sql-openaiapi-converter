@@ -1,0 +1,427 @@
+{
+  "3539121b6b18f915f2181dccda0cb6de66b43062b113f37b126c5fc16f55c61f": {
+    "pipeline": {
+      "source_ids": [
+        "CodeTask-pipeline"
+      ],
+      "inputs": {
+        "source.stations": {
+          "target": {
+            "parts": [
+              "sky_raw",
+              "stations"
+            ]
+          },
+          "columns": [
+            {
+              "name": "station_id",
+              "data_type": "INTEGER",
+              "nullable": false
+            },
+            {
+              "name": "station_name",
+              "data_type": "VARCHAR(24)",
+              "nullable": true
+            },
+            {
+              "name": "region",
+              "data_type": "VARCHAR(8)",
+              "nullable": true
+            },
+            {
+              "name": "active",
+              "data_type": "INTEGER",
+              "nullable": true
+            }
+          ],
+          "unique_keys": [
+            [
+              "station_id"
+            ]
+          ]
+        },
+        "source.readings": {
+          "target": {
+            "parts": [
+              "sky_raw",
+              "readings"
+            ]
+          },
+          "columns": [
+            {
+              "name": "event_id",
+              "data_type": "INTEGER",
+              "nullable": false
+            },
+            {
+              "name": "station_id",
+              "data_type": "INTEGER",
+              "nullable": true
+            },
+            {
+              "name": "sensor",
+              "data_type": "VARCHAR(5)",
+              "nullable": true
+            },
+            {
+              "name": "observed_at",
+              "data_type": "TIMESTAMP",
+              "nullable": true
+            },
+            {
+              "name": "value",
+              "data_type": "NUMERIC(9,2)",
+              "nullable": true
+            },
+            {
+              "name": "missing_kind",
+              "data_type": "VARCHAR(3)",
+              "nullable": true
+            },
+            {
+              "name": "note",
+              "data_type": "VARCHAR(40)",
+              "nullable": true
+            }
+          ],
+          "unique_keys": [
+            [
+              "event_id"
+            ]
+          ]
+        },
+        "source.calibration": {
+          "target": {
+            "parts": [
+              "sky_raw",
+              "calibration"
+            ]
+          },
+          "columns": [
+            {
+              "name": "station_id",
+              "data_type": "INTEGER",
+              "nullable": false
+            },
+            {
+              "name": "sensor",
+              "data_type": "VARCHAR(5)",
+              "nullable": false
+            },
+            {
+              "name": "calibration_seq",
+              "data_type": "INTEGER",
+              "nullable": false
+            },
+            {
+              "name": "bias",
+              "data_type": "NUMERIC(9,2)",
+              "nullable": true
+            }
+          ],
+          "unique_keys": [
+            [
+              "station_id",
+              "sensor",
+              "calibration_seq"
+            ]
+          ]
+        },
+        "source.targets": {
+          "target": {
+            "parts": [
+              "sky_raw",
+              "targets"
+            ]
+          },
+          "columns": [
+            {
+              "name": "station_id",
+              "data_type": "INTEGER",
+              "nullable": false
+            },
+            {
+              "name": "month",
+              "data_type": "DATE",
+              "nullable": false
+            },
+            {
+              "name": "reading_target",
+              "data_type": "INTEGER",
+              "nullable": true
+            }
+          ],
+          "unique_keys": [
+            [
+              "station_id",
+              "month"
+            ]
+          ]
+        }
+      },
+      "plan": {
+        "target": "postgresql",
+        "target_version": "17.10",
+        "validation_scope": "Exact comparison of independently specified synthetic outputs including NULL, duplicates and boundary dates. Not a SAS runtime oracle.",
+        "outputs": [
+          {
+            "name": {
+              "parts": [
+                "cleaned"
+              ]
+            },
+            "storage": "temporary",
+            "columns": [
+              "event_id",
+              "station_id",
+              "sensor",
+              "observed_at",
+              "measure",
+              "month",
+              "kind"
+            ],
+            "role": "final"
+          },
+          {
+            "name": {
+              "parts": [
+                "rejected"
+              ]
+            },
+            "storage": "temporary",
+            "columns": [
+              "event_id",
+              "reason"
+            ],
+            "role": "final"
+          },
+          {
+            "name": {
+              "parts": [
+                "ordered"
+              ]
+            },
+            "storage": "temporary",
+            "columns": [
+              "event_id",
+              "station_id",
+              "sensor",
+              "observed_at",
+              "measure",
+              "month",
+              "kind"
+            ],
+            "role": "intermediate"
+          },
+          {
+            "name": {
+              "parts": [
+                "winners"
+              ]
+            },
+            "storage": "temporary",
+            "columns": [
+              "event_id",
+              "station_id",
+              "sensor",
+              "observed_at",
+              "measure",
+              "month",
+              "kind"
+            ],
+            "role": "intermediate"
+          },
+          {
+            "name": {
+              "parts": [
+                "cal_order"
+              ]
+            },
+            "storage": "temporary",
+            "columns": [
+              "station_id",
+              "sensor",
+              "calibration_seq",
+              "bias"
+            ],
+            "role": "intermediate"
+          },
+          {
+            "name": {
+              "parts": [
+                "cal_latest"
+              ]
+            },
+            "storage": "temporary",
+            "columns": [
+              "station_id",
+              "sensor",
+              "calibration_seq",
+              "bias"
+            ],
+            "role": "intermediate"
+          },
+          {
+            "name": {
+              "parts": [
+                "adjusted"
+              ]
+            },
+            "storage": "temporary",
+            "columns": [
+              "event_id",
+              "station_id",
+              "sensor",
+              "observed_at",
+              "month",
+              "adjusted"
+            ],
+            "role": "intermediate"
+          },
+          {
+            "name": {
+              "parts": [
+                "monthly_kpi"
+              ]
+            },
+            "storage": "temporary",
+            "columns": [
+              "station_id",
+              "month",
+              "reading_count",
+              "total_value",
+              "reading_target",
+              "missing_target"
+            ],
+            "role": "final"
+          }
+        ],
+        "comparisons": [
+          {
+            "output": {
+              "parts": [
+                "cleaned"
+              ]
+            },
+            "reference": {
+              "parts": [
+                "sky_expected",
+                "cleaned"
+              ]
+            },
+            "provenance": "synthetic_handwritten",
+            "reference_run_id": "observatory-handwritten-20261106"
+          },
+          {
+            "output": {
+              "parts": [
+                "rejected"
+              ]
+            },
+            "reference": {
+              "parts": [
+                "sky_expected",
+                "rejected"
+              ]
+            },
+            "provenance": "synthetic_handwritten",
+            "reference_run_id": "observatory-handwritten-20261106"
+          },
+          {
+            "output": {
+              "parts": [
+                "monthly_kpi"
+              ]
+            },
+            "reference": {
+              "parts": [
+                "sky_expected",
+                "monthly_kpi"
+              ]
+            },
+            "provenance": "synthetic_handwritten",
+            "reference_run_id": "observatory-handwritten-20261106"
+          }
+        ]
+      }
+    },
+    "ctas": {
+      "source_ids": [
+        "CodeTask-ctas"
+      ],
+      "inputs": {
+        "source.stations": {
+          "target": {
+            "parts": [
+              "sky_raw",
+              "stations"
+            ]
+          },
+          "columns": [
+            {
+              "name": "station_id",
+              "data_type": "INTEGER",
+              "nullable": false
+            },
+            {
+              "name": "station_name",
+              "data_type": "VARCHAR(24)",
+              "nullable": true
+            },
+            {
+              "name": "region",
+              "data_type": "VARCHAR(8)",
+              "nullable": true
+            },
+            {
+              "name": "active",
+              "data_type": "INTEGER",
+              "nullable": true
+            }
+          ],
+          "unique_keys": [
+            [
+              "station_id"
+            ]
+          ]
+        }
+      },
+      "plan": {
+        "target": "postgresql",
+        "target_version": "17.10",
+        "validation_scope": "Exact comparison of independently specified synthetic outputs including NULL, duplicates and boundary dates. Not a SAS runtime oracle.",
+        "outputs": [
+          {
+            "name": {
+              "parts": [
+                "active_ids"
+              ]
+            },
+            "storage": "temporary",
+            "columns": [
+              "station_id"
+            ],
+            "role": "final"
+          }
+        ],
+        "comparisons": [
+          {
+            "output": {
+              "parts": [
+                "active_ids"
+              ]
+            },
+            "reference": {
+              "parts": [
+                "sky_expected",
+                "active_ids"
+              ]
+            },
+            "provenance": "synthetic_handwritten",
+            "reference_run_id": "observatory-handwritten-20261106"
+          }
+        ]
+      }
+    }
+  }
+}

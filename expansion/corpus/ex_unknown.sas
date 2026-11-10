@@ -1,0 +1,1 @@
+%let min_pages=%sysget(SYNTHETIC_UNSUPPLIED_PAGES); data mart.selected_books; set source.books; if pages>&min_pages.; run;

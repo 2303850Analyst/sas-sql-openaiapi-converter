@@ -1,0 +1,8 @@
+{
+  "synthetic_only": true,
+  "cases": 28,
+  "positive": 24,
+  "variants": 4,
+  "corpus_sha256": "511ebee73f4bd18dd6201af204c478c43e63308596229f0f9f8a190488f9da08",
+  "oracle_code_sha256": "fc42d975b747ee89772c022b7d8072e4692f8c0f2ee70ad6ce8532bb4c72f1a2"
+}

@@ -1,0 +1,9 @@
+{
+  "synthetic": true,
+  "sas_runtime": "not_available",
+  "cases": 14,
+  "positive_cases": 12,
+  "variants_per_case": 4,
+  "corpus_sha256": "4c04ac38ec2b2481cd68fbb4f4b649b86930f296b8c39097f265d1d129787a89",
+  "oracle_sha256": "35ba42f76d3e72237f33e03ededfbdd90db7bac42aef068b633d6bb6f94c482e"
+}

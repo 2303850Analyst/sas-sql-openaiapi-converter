@@ -1,0 +1,4 @@
+%let floor=0; %macro clean; data work.cleaned work.rejected; set source.sales; if missing(customer_id) or missing(amount) or amount<&floor then output work.rejected; else output work.cleaned; run; %mend; %clean;
+proc sql; create table work.enriched as select a.id,a.customer_id,a.g,a.observed_at,a.amount,b.segment from work.cleaned a left join source.customers b on a.customer_id=b.customer_id; quit;
+%macro aggregate; proc sql; create table mart.flow_monthly as select intnx('month',datepart(observed_at),0,'b') as month format=yymmdd10.,segment,count(*) as n,sum(amount) as total from work.enriched group by calculated month,segment; quit; %mend; %aggregate;
+data mart.flow_flags; set work.enriched; if amount>=100 then band='high'; else band='low'; keep id customer_id segment band; run;

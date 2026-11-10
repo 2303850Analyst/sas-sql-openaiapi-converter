@@ -1,0 +1,10 @@
+{
+  "version": "2.0.0",
+  "scope": "synthetic laboratory results after execution",
+  "numeric": {"quantum": "0.001", "rounding": "ROUND_HALF_UP", "float_transport": "shortest round-trip decimal", "max_decimal_digits": 1000, "signed_zero_equal": true, "nan": "same typed NaN only", "infinity": "same sign only", "special_sas_missing": "separate tag per letter and underscore", "null_equals_zero": false},
+  "temporal": {"date_matches_midnight": true, "nonzero_fraction_preserved": true, "aware_timestamp": "requires an explicit comparison zone", "ambiguous_local_midnight": "keep timestamp"},
+  "text": {"transport": "existing SAS trailing ASCII padding and character missing; preserve leading ASCII spaces, TAB, NBSP and case", "implicit_numeric_string": false},
+  "structure": {"full_outputs": true, "column_order": true, "row_width": true, "multiset": true, "keys_use_raw_identity": true, "row_order": "only when declared", "physical_type": "recorded separately and enforced when required"},
+  "raw": "retain typed values before normalization",
+  "bi": "ingest original values and exact transport, never normalized copies"
+}

@@ -1,0 +1,19 @@
+name: sas-semantic-eval
+services:
+  postgres:
+    image: postgres@sha256:742f40ea20b9ff2ff31db5458d127452988a2164df9e17441e191f3b72252193
+    pull_policy: never
+    environment:
+      POSTGRES_DB: semantic_eval
+      POSTGRES_USER: fixture_owner
+      POSTGRES_PASSWORD: synthetic_owner_only
+      TZ: UTC
+    ports:
+      - "127.0.0.1:55439:5432"
+    volumes:
+      - ./bootstrap.sql:/docker-entrypoint-initdb.d/01-eval.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U fixture_owner -d semantic_eval"]
+      interval: 2s
+      timeout: 3s
+      retries: 20

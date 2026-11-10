@@ -1,0 +1,6 @@
+station_id,station_name,region,active
+101,Aurora,NORTH,1
+102,Meridian,SOUTH,1
+103,Kepler,NORTH,0
+104,Zenith,WEST,1
+105,Parallax,WEST,1

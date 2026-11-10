@@ -1,0 +1,1 @@
+proc format; value bands .='missing' low-<0='negative' 0='zero' 0<-high='positive'; run; data mart.e15_result(keep=id bucket); length bucket $8; set source.events; bucket=put(x,bands.); run;

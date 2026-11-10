@@ -1,0 +1,1 @@
+proc summary data=source.readings nway missing; class sector; var reading; output out=mart.echo_summary(drop=_type_ _freq_) sum=total_reading mean=mean_reading n=present; run;

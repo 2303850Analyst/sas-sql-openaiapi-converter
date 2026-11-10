@@ -1,0 +1,1 @@
+data mart.e20_result; set source.firsts; run; proc append base=mart.e20_result data=source.seconds force; run;

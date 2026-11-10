@@ -1,0 +1,1 @@
+data mart.e14_result(keep=id total present absent); set source.events; array a[3] x y z; total=sum(of a[*]); present=n(of a[*]); absent=nmiss(of a[*]); run;

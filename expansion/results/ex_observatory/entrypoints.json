@@ -1,0 +1,26 @@
+[
+  {
+    "scenario_id": "main",
+    "target": "greenplum",
+    "path": "sql/greenplum/scenario_001.sql",
+    "sha256": "6019c8ad4648b697cf733a2f2fbdae073ce8c57622161b308e648ca3e15e508c",
+    "code_passed": true,
+    "session": "one uninterrupted session per scenario; scenarios are alternatives"
+  },
+  {
+    "scenario_id": "main",
+    "target": "postgresql",
+    "path": "sql/postgresql/scenario_001.sql",
+    "sha256": "399d752be4724cf21a66f440b2d71a7616c2f48d6e5896981dd858736f14cdf9",
+    "code_passed": true,
+    "session": "one uninterrupted session per scenario; scenarios are alternatives"
+  },
+  {
+    "scenario_id": "main",
+    "target": "clickhouse",
+    "path": "sql/clickhouse/scenario_001.sql",
+    "sha256": "e5eb45a4e0395f2fa8fa24137f11658b1d54212d08a2f37aeda0c723ef914acf",
+    "code_passed": true,
+    "session": "one uninterrupted session per scenario; scenarios are alternatives"
+  }
+]

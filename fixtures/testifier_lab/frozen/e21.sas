@@ -1,0 +1,1 @@
+data mart.e21_result(keep=id month_end next_end months); set source.events; month_end=intnx('month',d,0,'e'); next_end=intnx('month',d,1,'e'); months=intck('month','01JAN2024'd,d); format month_end next_end yymmdd10.; run;

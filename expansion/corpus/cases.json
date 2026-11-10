@@ -1,0 +1,2319 @@
+[
+  {
+    "id": "ex_observatory",
+    "title": "PROC SQL GROUP BY, AVG and scale-9 checkpoint",
+    "sources": {
+      "P1": "proc sql; create table mart.sky_summary as select sector, count(*) as n, count(distinct reading) as uniq, sum(reading) as total_reading, avg(reading) as mean_reading, count(reading) as present from source.readings group by sector having count(*)>0; quit;"
+    },
+    "source": "proc sql; create table mart.sky_summary as select sector, count(*) as n, count(distinct reading) as uniq, sum(reading) as total_reading, avg(reading) as mean_reading, count(reading) as present from source.readings group by sector having count(*)>0; quit;",
+    "inputs": {
+      "readings": {
+        "columns": [
+          {
+            "name": "id",
+            "data_type": "INTEGER",
+            "nullable": false
+          },
+          {
+            "name": "sector",
+            "data_type": "INTEGER",
+            "nullable": true
+          },
+          {
+            "name": "reading",
+            "data_type": "NUMERIC(24,12)",
+            "nullable": true
+          }
+        ],
+        "unique_keys": [
+          [
+            "id"
+          ]
+        ]
+      }
+    },
+    "outputs": {
+      "sky_summary": [
+        {
+          "name": "sector",
+          "data_type": "INTEGER",
+          "nullable": true
+        },
+        {
+          "name": "n",
+          "data_type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "uniq",
+          "data_type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "total_reading",
+          "data_type": "NUMERIC(28,12)",
+          "nullable": true
+        },
+        {
+          "name": "mean_reading",
+          "data_type": "DECIMAL(30,9)",
+          "nullable": true
+        },
+        {
+          "name": "present",
+          "data_type": "INTEGER",
+          "nullable": false
+        }
+      ]
+    },
+    "variants": [
+      {
+        "name": "edge",
+        "inputs": {
+          "readings": [
+            [
+              1,
+              null,
+              null
+            ],
+            [
+              2,
+              null,
+              "0"
+            ],
+            [
+              3,
+              0,
+              null
+            ],
+            [
+              4,
+              1,
+              "0.000499999975"
+            ],
+            [
+              5,
+              2,
+              "90071992547.409250000000"
+            ],
+            [
+              6,
+              2,
+              "90071992547.409260000000"
+            ],
+            [
+              7,
+              3,
+              "-0.000500000000"
+            ]
+          ]
+        },
+        "expected": {
+          "sky_summary": [
+            [
+              null,
+              2,
+              1,
+              "0",
+              "0E-9",
+              1
+            ],
+            [
+              0,
+              1,
+              0,
+              null,
+              null,
+              0
+            ],
+            [
+              1,
+              1,
+              1,
+              "0.000499999975",
+              "0.000500000",
+              1
+            ],
+            [
+              2,
+              2,
+              2,
+              "180143985094.818510000000",
+              "90071992547.409255000",
+              2
+            ],
+            [
+              3,
+              1,
+              1,
+              "-0.000500000000",
+              "-0.000500000",
+              1
+            ]
+          ]
+        },
+        "before_storage_average": [
+          [
+            null,
+            "0"
+          ],
+          [
+            0,
+            null
+          ],
+          [
+            1,
+            "0.000499999975"
+          ],
+          [
+            2,
+            "90071992547.409255000000"
+          ],
+          [
+            3,
+            "-0.000500000000"
+          ]
+        ]
+      },
+      {
+        "name": "seed8237",
+        "inputs": {
+          "readings": [
+            [
+              1,
+              2,
+              "77.143"
+            ],
+            [
+              2,
+              2,
+              "-76.557"
+            ],
+            [
+              3,
+              3,
+              "-63.395"
+            ],
+            [
+              4,
+              3,
+              "-79.705"
+            ],
+            [
+              5,
+              1,
+              null
+            ],
+            [
+              6,
+              2,
+              "-0.175"
+            ],
+            [
+              7,
+              3,
+              "-56.966"
+            ],
+            [
+              8,
+              null,
+              "-33.052"
+            ],
+            [
+              9,
+              1,
+              "42.951"
+            ],
+            [
+              10,
+              null,
+              null
+            ],
+            [
+              11,
+              1,
+              "33.344"
+            ],
+            [
+              12,
+              2,
+              "-78.025"
+            ],
+            [
+              13,
+              1,
+              "-15.456"
+            ],
+            [
+              14,
+              1,
+              "78.722"
+            ],
+            [
+              15,
+              3,
+              null
+            ],
+            [
+              16,
+              1,
+              "58.143"
+            ],
+            [
+              17,
+              2,
+              "86.351"
+            ],
+            [
+              18,
+              2,
+              "-35.359"
+            ],
+            [
+              19,
+              2,
+              "15.466"
+            ],
+            [
+              20,
+              2,
+              null
+            ],
+            [
+              21,
+              1,
+              "-22.384"
+            ],
+            [
+              22,
+              3,
+              "-55.286"
+            ],
+            [
+              23,
+              null,
+              "90.524"
+            ],
+            [
+              24,
+              3,
+              "-69.256"
+            ],
+            [
+              25,
+              1,
+              null
+            ],
+            [
+              26,
+              1,
+              "81.09"
+            ],
+            [
+              27,
+              3,
+              "24.681"
+            ],
+            [
+              28,
+              2,
+              "-44.507"
+            ],
+            [
+              29,
+              null,
+              "37.976"
+            ],
+            [
+              30,
+              3,
+              null
+            ],
+            [
+              31,
+              1,
+              "-10.198"
+            ],
+            [
+              32,
+              1,
+              "72.679"
+            ],
+            [
+              33,
+              null,
+              "56.88"
+            ],
+            [
+              34,
+              2,
+              "25.557"
+            ],
+            [
+              35,
+              2,
+              null
+            ],
+            [
+              36,
+              3,
+              "-4.846"
+            ],
+            [
+              37,
+              null,
+              "-81.225"
+            ],
+            [
+              38,
+              null,
+              "66.448"
+            ],
+            [
+              39,
+              null,
+              "0.588"
+            ],
+            [
+              40,
+              1,
+              null
+            ],
+            [
+              41,
+              1,
+              "-47.08"
+            ],
+            [
+              42,
+              1,
+              "74.403"
+            ],
+            [
+              43,
+              null,
+              "66.775"
+            ],
+            [
+              44,
+              2,
+              "11.038"
+            ],
+            [
+              45,
+              3,
+              null
+            ],
+            [
+              46,
+              2,
+              "-68.575"
+            ],
+            [
+              47,
+              2,
+              "-93.482"
+            ],
+            [
+              48,
+              3,
+              "-83.496"
+            ]
+          ]
+        },
+        "expected": {
+          "sky_summary": [
+            [
+              2,
+              14,
+              12,
+              "-181.125",
+              "-15.093750000",
+              12
+            ],
+            [
+              3,
+              11,
+              8,
+              "-388.269",
+              "-48.533625000",
+              8
+            ],
+            [
+              1,
+              14,
+              11,
+              "346.214",
+              "31.474000000",
+              11
+            ],
+            [
+              null,
+              9,
+              8,
+              "204.914",
+              "25.614250000",
+              8
+            ]
+          ]
+        },
+        "before_storage_average": [
+          [
+            2,
+            "-15.09375"
+          ],
+          [
+            3,
+            "-48.533625"
+          ],
+          [
+            1,
+            "31.474"
+          ],
+          [
+            null,
+            "25.61425"
+          ]
+        ]
+      },
+      {
+        "name": "permutation",
+        "inputs": {
+          "readings": [
+            [
+              48,
+              3,
+              "-83.496"
+            ],
+            [
+              47,
+              2,
+              "-93.482"
+            ],
+            [
+              46,
+              2,
+              "-68.575"
+            ],
+            [
+              45,
+              3,
+              null
+            ],
+            [
+              44,
+              2,
+              "11.038"
+            ],
+            [
+              43,
+              null,
+              "66.775"
+            ],
+            [
+              42,
+              1,
+              "74.403"
+            ],
+            [
+              41,
+              1,
+              "-47.08"
+            ],
+            [
+              40,
+              1,
+              null
+            ],
+            [
+              39,
+              null,
+              "0.588"
+            ],
+            [
+              38,
+              null,
+              "66.448"
+            ],
+            [
+              37,
+              null,
+              "-81.225"
+            ],
+            [
+              36,
+              3,
+              "-4.846"
+            ],
+            [
+              35,
+              2,
+              null
+            ],
+            [
+              34,
+              2,
+              "25.557"
+            ],
+            [
+              33,
+              null,
+              "56.88"
+            ],
+            [
+              32,
+              1,
+              "72.679"
+            ],
+            [
+              31,
+              1,
+              "-10.198"
+            ],
+            [
+              30,
+              3,
+              null
+            ],
+            [
+              29,
+              null,
+              "37.976"
+            ],
+            [
+              28,
+              2,
+              "-44.507"
+            ],
+            [
+              27,
+              3,
+              "24.681"
+            ],
+            [
+              26,
+              1,
+              "81.09"
+            ],
+            [
+              25,
+              1,
+              null
+            ],
+            [
+              24,
+              3,
+              "-69.256"
+            ],
+            [
+              23,
+              null,
+              "90.524"
+            ],
+            [
+              22,
+              3,
+              "-55.286"
+            ],
+            [
+              21,
+              1,
+              "-22.384"
+            ],
+            [
+              20,
+              2,
+              null
+            ],
+            [
+              19,
+              2,
+              "15.466"
+            ],
+            [
+              18,
+              2,
+              "-35.359"
+            ],
+            [
+              17,
+              2,
+              "86.351"
+            ],
+            [
+              16,
+              1,
+              "58.143"
+            ],
+            [
+              15,
+              3,
+              null
+            ],
+            [
+              14,
+              1,
+              "78.722"
+            ],
+            [
+              13,
+              1,
+              "-15.456"
+            ],
+            [
+              12,
+              2,
+              "-78.025"
+            ],
+            [
+              11,
+              1,
+              "33.344"
+            ],
+            [
+              10,
+              null,
+              null
+            ],
+            [
+              9,
+              1,
+              "42.951"
+            ],
+            [
+              8,
+              null,
+              "-33.052"
+            ],
+            [
+              7,
+              3,
+              "-56.966"
+            ],
+            [
+              6,
+              2,
+              "-0.175"
+            ],
+            [
+              5,
+              1,
+              null
+            ],
+            [
+              4,
+              3,
+              "-79.705"
+            ],
+            [
+              3,
+              3,
+              "-63.395"
+            ],
+            [
+              2,
+              2,
+              "-76.557"
+            ],
+            [
+              1,
+              2,
+              "77.143"
+            ]
+          ]
+        },
+        "expected": {
+          "sky_summary": [
+            [
+              3,
+              11,
+              8,
+              "-388.269",
+              "-48.533625000",
+              8
+            ],
+            [
+              2,
+              14,
+              12,
+              "-181.125",
+              "-15.093750000",
+              12
+            ],
+            [
+              null,
+              9,
+              8,
+              "204.914",
+              "25.614250000",
+              8
+            ],
+            [
+              1,
+              14,
+              11,
+              "346.214",
+              "31.474000000",
+              11
+            ]
+          ]
+        },
+        "before_storage_average": [
+          [
+            3,
+            "-48.533625"
+          ],
+          [
+            2,
+            "-15.09375"
+          ],
+          [
+            null,
+            "25.61425"
+          ],
+          [
+            1,
+            "31.474"
+          ]
+        ]
+      },
+      {
+        "name": "empty",
+        "inputs": {
+          "readings": []
+        },
+        "expected": {
+          "sky_summary": []
+        },
+        "before_storage_average": []
+      }
+    ],
+    "negative": false,
+    "finals": [
+      "sky_summary"
+    ],
+    "output_sources": {
+      "sky_summary": "mart.sky_summary"
+    },
+    "arithmetic_contract": "Exact decimal after transport; round final storage to scale 9 half away from zero, then QA scale 3; average of all missing is NULL.",
+    "archive_sha256": "2f07f7fea75cd9f20cd1d517c4afaf88ed0ac5c5750ab8a9bfb980e6988a374c"
+  },
+  {
+    "id": "ex_acoustic",
+    "title": "PROC SUMMARY NWAY MISSING, named statistics",
+    "sources": {
+      "P1": "proc summary data=source.readings nway missing; class sector; var reading; output out=mart.echo_summary(drop=_type_ _freq_) sum=total_reading mean=mean_reading n=present; run;"
+    },
+    "source": "proc summary data=source.readings nway missing; class sector; var reading; output out=mart.echo_summary(drop=_type_ _freq_) sum=total_reading mean=mean_reading n=present; run;",
+    "inputs": {
+      "readings": {
+        "columns": [
+          {
+            "name": "id",
+            "data_type": "INTEGER",
+            "nullable": false
+          },
+          {
+            "name": "sector",
+            "data_type": "INTEGER",
+            "nullable": true
+          },
+          {
+            "name": "reading",
+            "data_type": "NUMERIC(24,12)",
+            "nullable": true
+          }
+        ],
+        "unique_keys": [
+          [
+            "id"
+          ]
+        ]
+      }
+    },
+    "outputs": {
+      "echo_summary": [
+        {
+          "name": "sector",
+          "data_type": "INTEGER",
+          "nullable": true
+        },
+        {
+          "name": "total_reading",
+          "data_type": "NUMERIC(28,12)",
+          "nullable": true
+        },
+        {
+          "name": "mean_reading",
+          "data_type": "DECIMAL(30,9)",
+          "nullable": true
+        },
+        {
+          "name": "present",
+          "data_type": "INTEGER",
+          "nullable": false
+        }
+      ]
+    },
+    "variants": [
+      {
+        "name": "edge",
+        "inputs": {
+          "readings": [
+            [
+              1,
+              null,
+              null
+            ],
+            [
+              2,
+              null,
+              "0"
+            ],
+            [
+              3,
+              0,
+              null
+            ],
+            [
+              4,
+              1,
+              "0.000499999975"
+            ],
+            [
+              5,
+              2,
+              "90071992547.409250000000"
+            ],
+            [
+              6,
+              2,
+              "90071992547.409260000000"
+            ],
+            [
+              7,
+              3,
+              "-0.000500000000"
+            ]
+          ]
+        },
+        "expected": {
+          "echo_summary": [
+            [
+              null,
+              "0",
+              "0E-9",
+              1
+            ],
+            [
+              0,
+              null,
+              null,
+              0
+            ],
+            [
+              1,
+              "0.000499999975",
+              "0.000500000",
+              1
+            ],
+            [
+              2,
+              "180143985094.818510000000",
+              "90071992547.409255000",
+              2
+            ],
+            [
+              3,
+              "-0.000500000000",
+              "-0.000500000",
+              1
+            ]
+          ]
+        },
+        "before_storage_average": [
+          [
+            null,
+            "0"
+          ],
+          [
+            0,
+            null
+          ],
+          [
+            1,
+            "0.000499999975"
+          ],
+          [
+            2,
+            "90071992547.409255000000"
+          ],
+          [
+            3,
+            "-0.000500000000"
+          ]
+        ]
+      },
+      {
+        "name": "seed8237",
+        "inputs": {
+          "readings": [
+            [
+              1,
+              2,
+              "77.143"
+            ],
+            [
+              2,
+              2,
+              "-76.557"
+            ],
+            [
+              3,
+              3,
+              "-63.395"
+            ],
+            [
+              4,
+              3,
+              "-79.705"
+            ],
+            [
+              5,
+              1,
+              null
+            ],
+            [
+              6,
+              2,
+              "-0.175"
+            ],
+            [
+              7,
+              3,
+              "-56.966"
+            ],
+            [
+              8,
+              null,
+              "-33.052"
+            ],
+            [
+              9,
+              1,
+              "42.951"
+            ],
+            [
+              10,
+              null,
+              null
+            ],
+            [
+              11,
+              1,
+              "33.344"
+            ],
+            [
+              12,
+              2,
+              "-78.025"
+            ],
+            [
+              13,
+              1,
+              "-15.456"
+            ],
+            [
+              14,
+              1,
+              "78.722"
+            ],
+            [
+              15,
+              3,
+              null
+            ],
+            [
+              16,
+              1,
+              "58.143"
+            ],
+            [
+              17,
+              2,
+              "86.351"
+            ],
+            [
+              18,
+              2,
+              "-35.359"
+            ],
+            [
+              19,
+              2,
+              "15.466"
+            ],
+            [
+              20,
+              2,
+              null
+            ],
+            [
+              21,
+              1,
+              "-22.384"
+            ],
+            [
+              22,
+              3,
+              "-55.286"
+            ],
+            [
+              23,
+              null,
+              "90.524"
+            ],
+            [
+              24,
+              3,
+              "-69.256"
+            ],
+            [
+              25,
+              1,
+              null
+            ],
+            [
+              26,
+              1,
+              "81.09"
+            ],
+            [
+              27,
+              3,
+              "24.681"
+            ],
+            [
+              28,
+              2,
+              "-44.507"
+            ],
+            [
+              29,
+              null,
+              "37.976"
+            ],
+            [
+              30,
+              3,
+              null
+            ],
+            [
+              31,
+              1,
+              "-10.198"
+            ],
+            [
+              32,
+              1,
+              "72.679"
+            ],
+            [
+              33,
+              null,
+              "56.88"
+            ],
+            [
+              34,
+              2,
+              "25.557"
+            ],
+            [
+              35,
+              2,
+              null
+            ],
+            [
+              36,
+              3,
+              "-4.846"
+            ],
+            [
+              37,
+              null,
+              "-81.225"
+            ],
+            [
+              38,
+              null,
+              "66.448"
+            ],
+            [
+              39,
+              null,
+              "0.588"
+            ],
+            [
+              40,
+              1,
+              null
+            ],
+            [
+              41,
+              1,
+              "-47.08"
+            ],
+            [
+              42,
+              1,
+              "74.403"
+            ],
+            [
+              43,
+              null,
+              "66.775"
+            ],
+            [
+              44,
+              2,
+              "11.038"
+            ],
+            [
+              45,
+              3,
+              null
+            ],
+            [
+              46,
+              2,
+              "-68.575"
+            ],
+            [
+              47,
+              2,
+              "-93.482"
+            ],
+            [
+              48,
+              3,
+              "-83.496"
+            ]
+          ]
+        },
+        "expected": {
+          "echo_summary": [
+            [
+              2,
+              "-181.125",
+              "-15.093750000",
+              12
+            ],
+            [
+              3,
+              "-388.269",
+              "-48.533625000",
+              8
+            ],
+            [
+              1,
+              "346.214",
+              "31.474000000",
+              11
+            ],
+            [
+              null,
+              "204.914",
+              "25.614250000",
+              8
+            ]
+          ]
+        },
+        "before_storage_average": [
+          [
+            2,
+            "-15.09375"
+          ],
+          [
+            3,
+            "-48.533625"
+          ],
+          [
+            1,
+            "31.474"
+          ],
+          [
+            null,
+            "25.61425"
+          ]
+        ]
+      },
+      {
+        "name": "permutation",
+        "inputs": {
+          "readings": [
+            [
+              48,
+              3,
+              "-83.496"
+            ],
+            [
+              47,
+              2,
+              "-93.482"
+            ],
+            [
+              46,
+              2,
+              "-68.575"
+            ],
+            [
+              45,
+              3,
+              null
+            ],
+            [
+              44,
+              2,
+              "11.038"
+            ],
+            [
+              43,
+              null,
+              "66.775"
+            ],
+            [
+              42,
+              1,
+              "74.403"
+            ],
+            [
+              41,
+              1,
+              "-47.08"
+            ],
+            [
+              40,
+              1,
+              null
+            ],
+            [
+              39,
+              null,
+              "0.588"
+            ],
+            [
+              38,
+              null,
+              "66.448"
+            ],
+            [
+              37,
+              null,
+              "-81.225"
+            ],
+            [
+              36,
+              3,
+              "-4.846"
+            ],
+            [
+              35,
+              2,
+              null
+            ],
+            [
+              34,
+              2,
+              "25.557"
+            ],
+            [
+              33,
+              null,
+              "56.88"
+            ],
+            [
+              32,
+              1,
+              "72.679"
+            ],
+            [
+              31,
+              1,
+              "-10.198"
+            ],
+            [
+              30,
+              3,
+              null
+            ],
+            [
+              29,
+              null,
+              "37.976"
+            ],
+            [
+              28,
+              2,
+              "-44.507"
+            ],
+            [
+              27,
+              3,
+              "24.681"
+            ],
+            [
+              26,
+              1,
+              "81.09"
+            ],
+            [
+              25,
+              1,
+              null
+            ],
+            [
+              24,
+              3,
+              "-69.256"
+            ],
+            [
+              23,
+              null,
+              "90.524"
+            ],
+            [
+              22,
+              3,
+              "-55.286"
+            ],
+            [
+              21,
+              1,
+              "-22.384"
+            ],
+            [
+              20,
+              2,
+              null
+            ],
+            [
+              19,
+              2,
+              "15.466"
+            ],
+            [
+              18,
+              2,
+              "-35.359"
+            ],
+            [
+              17,
+              2,
+              "86.351"
+            ],
+            [
+              16,
+              1,
+              "58.143"
+            ],
+            [
+              15,
+              3,
+              null
+            ],
+            [
+              14,
+              1,
+              "78.722"
+            ],
+            [
+              13,
+              1,
+              "-15.456"
+            ],
+            [
+              12,
+              2,
+              "-78.025"
+            ],
+            [
+              11,
+              1,
+              "33.344"
+            ],
+            [
+              10,
+              null,
+              null
+            ],
+            [
+              9,
+              1,
+              "42.951"
+            ],
+            [
+              8,
+              null,
+              "-33.052"
+            ],
+            [
+              7,
+              3,
+              "-56.966"
+            ],
+            [
+              6,
+              2,
+              "-0.175"
+            ],
+            [
+              5,
+              1,
+              null
+            ],
+            [
+              4,
+              3,
+              "-79.705"
+            ],
+            [
+              3,
+              3,
+              "-63.395"
+            ],
+            [
+              2,
+              2,
+              "-76.557"
+            ],
+            [
+              1,
+              2,
+              "77.143"
+            ]
+          ]
+        },
+        "expected": {
+          "echo_summary": [
+            [
+              3,
+              "-388.269",
+              "-48.533625000",
+              8
+            ],
+            [
+              2,
+              "-181.125",
+              "-15.093750000",
+              12
+            ],
+            [
+              null,
+              "204.914",
+              "25.614250000",
+              8
+            ],
+            [
+              1,
+              "346.214",
+              "31.474000000",
+              11
+            ]
+          ]
+        },
+        "before_storage_average": [
+          [
+            3,
+            "-48.533625"
+          ],
+          [
+            2,
+            "-15.09375"
+          ],
+          [
+            null,
+            "25.61425"
+          ],
+          [
+            1,
+            "31.474"
+          ]
+        ]
+      },
+      {
+        "name": "empty",
+        "inputs": {
+          "readings": []
+        },
+        "expected": {
+          "echo_summary": []
+        },
+        "before_storage_average": []
+      }
+    ],
+    "negative": false,
+    "finals": [
+      "echo_summary"
+    ],
+    "output_sources": {
+      "echo_summary": "mart.echo_summary"
+    },
+    "arithmetic_contract": "Exact decimal after transport; round final storage to scale 9 half away from zero, then QA scale 3; average of all missing is NULL.",
+    "archive_sha256": "a8f40d03c38dbe04429bdecee2ba333b4b5696a656b5233ffd02f644d91f21b7"
+  },
+  {
+    "id": "ex_library",
+    "title": "Two programs: APPEND FORCE by name, duplicate IDs",
+    "sources": {
+      "P1": "data mart.catalogue; set source.editions; run;",
+      "P2": "proc append base=mart.catalogue data=source.accessions force; run;"
+    },
+    "source": "data mart.catalogue; set source.editions; run;\nproc append base=mart.catalogue data=source.accessions force; run;",
+    "inputs": {
+      "editions": {
+        "columns": [
+          {
+            "name": "id",
+            "data_type": "INTEGER",
+            "nullable": false
+          },
+          {
+            "name": "pages",
+            "data_type": "INTEGER",
+            "nullable": true
+          }
+        ],
+        "unique_keys": []
+      },
+      "accessions": {
+        "columns": [
+          {
+            "name": "id",
+            "data_type": "INTEGER",
+            "nullable": false
+          },
+          {
+            "name": "shelf",
+            "data_type": "INTEGER",
+            "nullable": true
+          }
+        ],
+        "unique_keys": []
+      }
+    },
+    "outputs": {
+      "catalogue": [
+        {
+          "name": "id",
+          "data_type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "pages",
+          "data_type": "INTEGER",
+          "nullable": true
+        }
+      ]
+    },
+    "variants": [
+      {
+        "name": "duplicates",
+        "inputs": {
+          "editions": [
+            [
+              1,
+              10
+            ],
+            [
+              1,
+              10
+            ],
+            [
+              9,
+              null
+            ]
+          ],
+          "accessions": [
+            [
+              1,
+              2
+            ],
+            [
+              1,
+              2
+            ],
+            [
+              3,
+              null
+            ]
+          ]
+        },
+        "expected": {
+          "catalogue": [
+            [
+              1,
+              10
+            ],
+            [
+              1,
+              10
+            ],
+            [
+              9,
+              null
+            ],
+            [
+              1,
+              null
+            ],
+            [
+              1,
+              null
+            ],
+            [
+              3,
+              null
+            ]
+          ]
+        }
+      },
+      {
+        "name": "no_base",
+        "inputs": {
+          "editions": [],
+          "accessions": [
+            [
+              2,
+              5
+            ]
+          ]
+        },
+        "expected": {
+          "catalogue": [
+            [
+              2,
+              null
+            ]
+          ]
+        }
+      },
+      {
+        "name": "no_append",
+        "inputs": {
+          "editions": [
+            [
+              2,
+              5
+            ]
+          ],
+          "accessions": []
+        },
+        "expected": {
+          "catalogue": [
+            [
+              2,
+              5
+            ]
+          ]
+        }
+      },
+      {
+        "name": "empty",
+        "inputs": {
+          "editions": [],
+          "accessions": []
+        },
+        "expected": {
+          "catalogue": []
+        }
+      }
+    ],
+    "negative": false,
+    "finals": [
+      "catalogue"
+    ],
+    "output_sources": {
+      "catalogue": "mart.catalogue"
+    },
+    "archive_sha256": "a6ff767933ff916d09dc7f44d18c48aa47f6a07c8c403b799f1d5c8ef151ad44"
+  },
+  {
+    "id": "ex_dispatch",
+    "title": "Two programs: local LET, DATA routing, temporary outputs and LEFT JOIN",
+    "sources": {
+      "P1": "%let threshold=3; data work.ready_parcels work.light_parcels; set source.parcels; if missing(weight) or weight<&threshold. then output work.light_parcels; else output work.ready_parcels; run;",
+      "P2": "proc sql; create table mart.dispatch_board as select p.id,p.weight,p.zone,z.label from work.ready_parcels p left join source.zones z on p.zone=z.zone; quit;"
+    },
+    "source": "%let threshold=3; data work.ready_parcels work.light_parcels; set source.parcels; if missing(weight) or weight<&threshold. then output work.light_parcels; else output work.ready_parcels; run;\nproc sql; create table mart.dispatch_board as select p.id,p.weight,p.zone,z.label from work.ready_parcels p left join source.zones z on p.zone=z.zone; quit;",
+    "inputs": {
+      "parcels": {
+        "columns": [
+          {
+            "name": "id",
+            "data_type": "INTEGER",
+            "nullable": false
+          },
+          {
+            "name": "weight",
+            "data_type": "INTEGER",
+            "nullable": true
+          },
+          {
+            "name": "zone",
+            "data_type": "INTEGER",
+            "nullable": true
+          }
+        ],
+        "unique_keys": [
+          [
+            "id"
+          ]
+        ]
+      },
+      "zones": {
+        "columns": [
+          {
+            "name": "zone",
+            "data_type": "INTEGER",
+            "nullable": false
+          },
+          {
+            "name": "label",
+            "data_type": "VARCHAR(16)",
+            "nullable": true
+          }
+        ],
+        "unique_keys": [
+          [
+            "zone"
+          ]
+        ]
+      }
+    },
+    "outputs": {
+      "ready_parcels": [
+        {
+          "name": "id",
+          "data_type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "weight",
+          "data_type": "INTEGER",
+          "nullable": true
+        },
+        {
+          "name": "zone",
+          "data_type": "INTEGER",
+          "nullable": true
+        }
+      ],
+      "light_parcels": [
+        {
+          "name": "id",
+          "data_type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "weight",
+          "data_type": "INTEGER",
+          "nullable": true
+        },
+        {
+          "name": "zone",
+          "data_type": "INTEGER",
+          "nullable": true
+        }
+      ],
+      "dispatch_board": [
+        {
+          "name": "id",
+          "data_type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "weight",
+          "data_type": "INTEGER",
+          "nullable": true
+        },
+        {
+          "name": "zone",
+          "data_type": "INTEGER",
+          "nullable": true
+        },
+        {
+          "name": "label",
+          "data_type": "VARCHAR(16)",
+          "nullable": true
+        }
+      ]
+    },
+    "variants": [
+      {
+        "name": "edge",
+        "inputs": {
+          "parcels": [
+            [
+              1,
+              2,
+              2
+            ],
+            [
+              2,
+              3,
+              null
+            ],
+            [
+              3,
+              null,
+              1
+            ],
+            [
+              4,
+              12,
+              1
+            ],
+            [
+              5,
+              14,
+              3
+            ]
+          ],
+          "zones": [
+            [
+              1,
+              ""
+            ],
+            [
+              2,
+              "east"
+            ]
+          ]
+        },
+        "expected": {
+          "light_parcels": [
+            [
+              1,
+              2,
+              2
+            ],
+            [
+              3,
+              null,
+              1
+            ]
+          ],
+          "ready_parcels": [
+            [
+              2,
+              3,
+              null
+            ],
+            [
+              4,
+              12,
+              1
+            ],
+            [
+              5,
+              14,
+              3
+            ]
+          ],
+          "dispatch_board": [
+            [
+              2,
+              3,
+              null,
+              null
+            ],
+            [
+              4,
+              12,
+              1,
+              ""
+            ],
+            [
+              5,
+              14,
+              3,
+              null
+            ]
+          ]
+        }
+      },
+      {
+        "name": "empty_right",
+        "inputs": {
+          "parcels": [
+            [
+              1,
+              6,
+              6
+            ]
+          ],
+          "zones": []
+        },
+        "expected": {
+          "light_parcels": [],
+          "ready_parcels": [
+            [
+              1,
+              6,
+              6
+            ]
+          ],
+          "dispatch_board": [
+            [
+              1,
+              6,
+              6,
+              null
+            ]
+          ]
+        }
+      },
+      {
+        "name": "empty",
+        "inputs": {
+          "parcels": [],
+          "zones": []
+        },
+        "expected": {
+          "light_parcels": [],
+          "ready_parcels": [],
+          "dispatch_board": []
+        }
+      }
+    ],
+    "negative": false,
+    "finals": [
+      "dispatch_board"
+    ],
+    "output_sources": {
+      "ready_parcels": "work.ready_parcels",
+      "light_parcels": "work.light_parcels",
+      "dispatch_board": "mart.dispatch_board"
+    },
+    "archive_sha256": "0d8ae98aa887f20ccd5d5409a957eddbd1922016460138ac1e4c47cc3ab06d26"
+  },
+  {
+    "id": "ex_pulses",
+    "title": "Two programs: SORT, conditional LAG with null queue values",
+    "sources": {
+      "P1": "proc sort data=source.samples out=work.queued_pulses; by seq; run;",
+      "P2": "data mart.pulse_delta(keep=id previous); set work.queued_pulses; if enabled=1 then previous=lag(signal); else previous=.; run;"
+    },
+    "source": "proc sort data=source.samples out=work.queued_pulses; by seq; run;\ndata mart.pulse_delta(keep=id previous); set work.queued_pulses; if enabled=1 then previous=lag(signal); else previous=.; run;",
+    "inputs": {
+      "samples": {
+        "columns": [
+          {
+            "name": "id",
+            "data_type": "INTEGER",
+            "nullable": false
+          },
+          {
+            "name": "seq",
+            "data_type": "INTEGER",
+            "nullable": false
+          },
+          {
+            "name": "enabled",
+            "data_type": "INTEGER",
+            "nullable": true
+          },
+          {
+            "name": "signal",
+            "data_type": "INTEGER",
+            "nullable": true
+          }
+        ],
+        "unique_keys": [
+          [
+            "id"
+          ],
+          [
+            "seq"
+          ]
+        ]
+      }
+    },
+    "outputs": {
+      "queued_pulses": [
+        {
+          "name": "id",
+          "data_type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "seq",
+          "data_type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "enabled",
+          "data_type": "INTEGER",
+          "nullable": true
+        },
+        {
+          "name": "signal",
+          "data_type": "INTEGER",
+          "nullable": true
+        }
+      ],
+      "pulse_delta": [
+        {
+          "name": "id",
+          "data_type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "previous",
+          "data_type": "INTEGER",
+          "nullable": true
+        }
+      ]
+    },
+    "variants": [
+      {
+        "name": "queue",
+        "inputs": {
+          "samples": [
+            [
+              90,
+              1,
+              1,
+              10
+            ],
+            [
+              5,
+              2,
+              0,
+              99
+            ],
+            [
+              12,
+              3,
+              1,
+              null
+            ],
+            [
+              2,
+              4,
+              1,
+              45
+            ]
+          ]
+        },
+        "expected": {
+          "queued_pulses": [
+            [
+              90,
+              1,
+              1,
+              10
+            ],
+            [
+              5,
+              2,
+              0,
+              99
+            ],
+            [
+              12,
+              3,
+              1,
+              null
+            ],
+            [
+              2,
+              4,
+              1,
+              45
+            ]
+          ],
+          "pulse_delta": [
+            [
+              90,
+              null
+            ],
+            [
+              5,
+              null
+            ],
+            [
+              12,
+              10
+            ],
+            [
+              2,
+              null
+            ]
+          ]
+        }
+      },
+      {
+        "name": "permuted",
+        "inputs": {
+          "samples": [
+            [
+              2,
+              4,
+              1,
+              45
+            ],
+            [
+              12,
+              3,
+              1,
+              null
+            ],
+            [
+              5,
+              2,
+              0,
+              99
+            ],
+            [
+              90,
+              1,
+              1,
+              10
+            ]
+          ]
+        },
+        "expected": {
+          "queued_pulses": [
+            [
+              90,
+              1,
+              1,
+              10
+            ],
+            [
+              5,
+              2,
+              0,
+              99
+            ],
+            [
+              12,
+              3,
+              1,
+              null
+            ],
+            [
+              2,
+              4,
+              1,
+              45
+            ]
+          ],
+          "pulse_delta": [
+            [
+              90,
+              null
+            ],
+            [
+              5,
+              null
+            ],
+            [
+              12,
+              10
+            ],
+            [
+              2,
+              null
+            ]
+          ]
+        }
+      },
+      {
+        "name": "empty",
+        "inputs": {
+          "samples": []
+        },
+        "expected": {
+          "queued_pulses": [],
+          "pulse_delta": []
+        }
+      }
+    ],
+    "negative": false,
+    "finals": [
+      "pulse_delta"
+    ],
+    "output_sources": {
+      "queued_pulses": "work.queued_pulses",
+      "pulse_delta": "mart.pulse_delta"
+    },
+    "archive_sha256": "03e8a0a3e8b783576843e317eab6b2fa8c4201d1cd0f62faec81e2010545b098"
+  },
+  {
+    "id": "ex_unknown",
+    "title": "External environment parameter requires HITL",
+    "sources": {
+      "P1": "%let min_pages=%sysget(SYNTHETIC_UNSUPPLIED_PAGES); data mart.selected_books; set source.books; if pages>&min_pages.; run;"
+    },
+    "source": "%let min_pages=%sysget(SYNTHETIC_UNSUPPLIED_PAGES); data mart.selected_books; set source.books; if pages>&min_pages.; run;",
+    "inputs": {
+      "books": {
+        "columns": [
+          {
+            "name": "id",
+            "data_type": "INTEGER",
+            "nullable": false
+          },
+          {
+            "name": "pages",
+            "data_type": "INTEGER",
+            "nullable": true
+          }
+        ],
+        "unique_keys": []
+      }
+    },
+    "outputs": {
+      "selected_books": [
+        {
+          "name": "id",
+          "data_type": "INTEGER",
+          "nullable": false
+        },
+        {
+          "name": "pages",
+          "data_type": "INTEGER",
+          "nullable": true
+        }
+      ]
+    },
+    "variants": [
+      {
+        "name": "negative",
+        "inputs": {
+          "books": [
+            [
+              1,
+              2
+            ],
+            [
+              2,
+              9
+            ]
+          ]
+        },
+        "expected": null
+      }
+    ],
+    "negative": true,
+    "finals": [
+      "selected_books"
+    ],
+    "output_sources": {
+      "selected_books": "mart.selected_books"
+    },
+    "archive_sha256": "3552df779066b87c06173cb22f9446dff10fed5623c9164d12a7066293da5de5"
+  }
+]

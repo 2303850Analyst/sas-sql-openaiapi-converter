@@ -1,0 +1,164 @@
+{
+  "postgresql/all_rows": {
+    "passed": true,
+    "actual_rows": 5002,
+    "expected_rows": 5002,
+    "verified_input": {
+      "probe": {
+        "rows": 5002,
+        "types": [
+          "integer",
+          "numeric(31,13)",
+          "double precision",
+          "real"
+        ]
+      }
+    },
+    "normalized_diff": {
+      "missing_rows": 0,
+      "extra_rows": 0,
+      "missing": [],
+      "extra": []
+    }
+  },
+  "postgresql/previous_false_pass_prefix": {
+    "passed": false,
+    "actual_rows": 5002,
+    "expected_rows": 5001,
+    "verified_input": {
+      "probe": {
+        "rows": 5002,
+        "types": [
+          "integer",
+          "numeric(31,13)",
+          "double precision",
+          "real"
+        ]
+      }
+    },
+    "normalized_diff": {
+      "missing_rows": 0,
+      "extra_rows": 1,
+      "missing": [],
+      "extra": [
+        {
+          "row": [
+            [
+              "number",
+              "5001.000"
+            ],
+            [
+              "number",
+              "9007199254740993.000"
+            ],
+            [
+              "number",
+              "1.235"
+            ],
+            [
+              "number",
+              "1.235"
+            ]
+          ],
+          "count": 1
+        }
+      ]
+    }
+  },
+  "clickhouse/all_rows": {
+    "passed": true,
+    "actual_rows": 5002,
+    "expected_rows": 5002,
+    "verified_input": {
+      "probe": {
+        "rows": 5002,
+        "types": [
+          [
+            "id",
+            "Int32"
+          ],
+          [
+            "amount",
+            "Decimal(31, 13)"
+          ],
+          [
+            "double_reading",
+            "Float64"
+          ],
+          [
+            "single_reading",
+            "Float32"
+          ]
+        ]
+      }
+    },
+    "normalized_diff": {
+      "missing_rows": 0,
+      "extra_rows": 0,
+      "missing": [],
+      "extra": []
+    }
+  },
+  "clickhouse/previous_false_pass_prefix": {
+    "passed": false,
+    "actual_rows": 5002,
+    "expected_rows": 5001,
+    "verified_input": {
+      "probe": {
+        "rows": 5002,
+        "types": [
+          [
+            "id",
+            "Int32"
+          ],
+          [
+            "amount",
+            "Decimal(31, 13)"
+          ],
+          [
+            "double_reading",
+            "Float64"
+          ],
+          [
+            "single_reading",
+            "Float32"
+          ]
+        ]
+      }
+    },
+    "normalized_diff": {
+      "missing_rows": 0,
+      "extra_rows": 1,
+      "missing": [],
+      "extra": [
+        {
+          "row": [
+            [
+              "number",
+              "5001.000"
+            ],
+            [
+              "number",
+              "9007199254740993.000"
+            ],
+            [
+              "number",
+              "1.235"
+            ],
+            [
+              "number",
+              "1.235"
+            ]
+          ],
+          "count": 1
+        }
+      ]
+    }
+  },
+  "double_rounding": {
+    "before_storage": "0.000499999975",
+    "at_scale_9": "0.000500000",
+    "raw_at_scale_3": "0.000",
+    "stored_at_scale_3": "0.001"
+  }
+}

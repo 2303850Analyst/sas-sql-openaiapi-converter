@@ -1,0 +1,1 @@
+proc transpose data=source.events out=mart.n03_result; by g; id category; var x; run;
