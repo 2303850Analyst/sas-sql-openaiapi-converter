@@ -1,0 +1,1 @@
+%let n=%sysget(SYNTHETIC_ARRAY_BOUND); data mart.output; set source.values_in; array x[&n.] a b; run;

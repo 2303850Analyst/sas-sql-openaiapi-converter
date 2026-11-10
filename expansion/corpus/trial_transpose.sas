@@ -1,0 +1,1 @@
+proc transpose data=source.readings out=mart.wide_readings(drop=_name_) prefix=band_; by station; id band; var reading; run;

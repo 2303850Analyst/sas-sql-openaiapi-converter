@@ -2,6 +2,7 @@
 
 Локальное Windows-приложение для переноса проектов SAS Enterprise Guide в SQL для PostgreSQL, Greenplum и ClickHouse. V2 разбирает EGP, сохраняет согласованные источники и типы, генерирует SQL через явно настроенный OpenAI-compatible API и проверяет выходы перед выпуском. Модель и подключение к СУБД по умолчанию отключены.
 
+- [Запуск пробной сборки](START_HERE_RU.md) и [ограничения](KNOWN_ISSUES.md)
 - [Навигация по проекту](docs/START_HERE.md)
 - [Архитектура V2](docs/ARCHITECTURE_V2.md) и [проверка результатов](TESTIFIER.md)
 - [Синтетические проекты](expansion/corpus) и [результаты последних испытаний](expansion/results)

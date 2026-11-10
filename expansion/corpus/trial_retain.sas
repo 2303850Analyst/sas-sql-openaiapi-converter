@@ -1,0 +1,2 @@
+proc sort data=source.events out=work.ordered_events; by bucket id; run;
+data mart.running_totals(keep=id bucket running); set work.ordered_events; by bucket id; retain running 0; if first.bucket then running=0; running + value; run;

@@ -1,0 +1,1 @@
+data mart.selected(keep=id result); set source.items(keep=id raw active where=(active=1) rename=(raw=points)); result=points+2; run;

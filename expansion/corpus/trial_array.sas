@@ -1,0 +1,1 @@
+data mart.samples(keep=id total); set source.values_in; array v[2] a b; total=0; do j=1 to dim(v); if not missing(v[j]) then total=total+v[j]*j; end; run;

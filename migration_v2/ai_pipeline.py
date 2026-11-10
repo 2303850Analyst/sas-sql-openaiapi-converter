@@ -11,7 +11,7 @@ from typing import Literal
 from pydantic import Field, model_validator
 from .contracts import Contract, Candidate, digest, parse_json
 from .generation import request_json, Budget, decode_candidate,completion_payload,PipelineStop,ModelConnectionError
-from .linker import link, finding, VERSION, assemble_sql
+from .linker import link, finding, VERSION, assemble_sql, preserve_clickhouse_nullable
 from .rule_identity import rules_fingerprint
 from .task_planner import plan_tasks, task_payload, orders, declared_writes, sorted_output, lag_input
 from .semantic_guidance import SAS_GUIDANCE
@@ -167,6 +167,12 @@ def exposure(project, profile, data):
     synthetic=project["snapshot"]["archive_sha256"] in profile.synthetic_archives
     if profile.exposure=="synthetic_only" and not synthetic:
         raise ValueError("Corporate source cannot be sent to the synthetic/public profile")
+    if profile.interactive and profile.exposure == "synthetic_only":
+        units = (project.get("pipeline") or {}).get("units", {})
+        if (project.get("attachments") or project.get("include_sources") or project.get("manual_inputs")
+                or any(u.get("manual_candidate") or (u.get("review") or {}).get("provenance", {}).get("generator") == "local_user"
+                       or any(a.get("kind") == "manual" for a in u.get("attempts", ())) for u in units.values())):
+            raise ValueError("Публичный профиль принимает только встроенные синтетические исходники без локальных вложений или ручного SQL")
     if any(re.fullmatch(r"(?:password|passwd|pwd|api_key|access_token|authorization)",n,re.I) for n in project.get("parameters",{})):
         raise ValueError("Credential parameters must use the separate secret store, not the model contract")
     raw=json.dumps(data,ensure_ascii=False)
@@ -223,6 +229,7 @@ class ReviewInterrupted(ValueError):
 def review(wb,project,profile,budget,data,candidate,obligations,*,reconsideration=None):
     body={"scope_hash":data["hash"],"candidate_hash":digest(candidate),"context":data,
         "candidate":candidate,"obligations":list(obligations),"rules_fingerprint":rules_fingerprint()}
+    body["review_profile"] = profile.identity()
     if reconsideration:
         body["reconsideration"]=reconsideration
     exchanges=[]
@@ -308,11 +315,11 @@ def run(wb,project,runtime,cancelled=lambda:False):
     targets=project["plan"].get("targets") or [project["plan"]["target"]]
     fingerprint=rules_fingerprint()
     result={"version":VERSION,"rules_fingerprint":fingerprint,"task_hash":project["task"]["hash"],"planner_hash":planner["hash"],
-        "profiles":{},"units":{},"requirements":[],"history":[],"candidate":None,"release_allowed":False,
+        "review_profile":validator.identity(),"review_profile_slot":validator.profile_slot,"profiles":{},"units":{},"requirements":[],"history":[],"candidate":None,"release_allowed":False,
         "execution":"not_run","equivalence":"not_run"}
     previous=project.get("pipeline") or {}
     previous=previous if previous.get("task_hash")==result["task_hash"] and previous.get("planner_hash")==planner["hash"] else {}
-    current_verifier=previous.get("version")==VERSION and previous.get("rules_fingerprint")==fingerprint
+    current_verifier=previous.get("version")==VERSION and previous.get("rules_fingerprint")==fingerprint and previous.get("review_profile")==validator.identity()
     for target in targets:
         try:
             profile_result={"scenarios":{},"passed":True,"execution":"not_run","equivalence":"not_run"}
@@ -330,6 +337,8 @@ def run(wb,project,runtime,cancelled=lambda:False):
                 original = {name:mappings.get(name, name) for name in physical}
                 logical_orders = {}
                 predecessor_metadata = {}
+                predecessor_nullable = {}
+                predecessor_nonnull = {}
                 def logical(name):
                     return name.casefold().removeprefix("work.")
                 scenario_units=[u for u in planner["tasks"] if u["scenario_id"]==order["id"]]
@@ -358,11 +367,15 @@ def run(wb,project,runtime,cancelled=lambda:False):
                             continue
                         source_name = logical(original[name])
                         inherited = predecessor_metadata.get(source_name, {})
+                        metadata = {c["name"]: c for c in o.get("column_metadata") or inherited.get("columns", [])}
+                        metadata = [{**c, "nullable": False} if c["name"] in predecessor_nonnull.get(name, ())
+                                    else {**c, "nullable": True} if c["name"] in predecessor_nullable.get(name, ())
+                                    and c.get("nullable") is not False else c for c in metadata.values()]
                         aliases = [name, "work."+name] if len(o["name"]["parts"]) == 1 else [name]
                         data['intermediate_bindings'].append({
                             "original":original[name],"aliases":aliases,"target":o["name"],
                             "columns":o["columns"],"storage":o["storage"],
-                            "column_metadata":o.get("column_metadata") or inherited.get("columns", []),
+                            "column_metadata":metadata,
                             "unique_keys":o.get("unique_keys") or inherited.get("unique_keys", []),
                             "logical_order":logical_orders.get(source_name),
                             "status":"approved_predecessor_in_same_session"})
@@ -382,6 +395,12 @@ def run(wb,project,runtime,cancelled=lambda:False):
                     data["hash"]=digest({k:v for k,v in data.items() if k!="hash"})
                     semantic_source="\n".join([a["text"] for a in unit["parameter_assignments"]]+[d["text"] for d in unit["definitions"]]+[d["text"] for d in unit.get('includes',[])]+[unit["source"]])
                     source_text.append(semantic_source)
+                    def link_unit(artifacts):
+                        return link(translated_plan, artifacts, target, unit["obligations"], semantic_source,
+                                    predecessors=produced, predecessor_nullable=predecessor_nullable,
+                                    predecessor_nonnull=predecessor_nonnull,
+                                    require_all=bool(names) and not unknown, expected_writes=expected, lag_order=lag_order)
+
                     cached=previous.get("units",{}).get(key,{})
                     record={"hash":data["hash"],"attempts":list(cached.get("attempts",[])) if cached.get("hash")==data["hash"] else [],"passed":False}
                     result["units"][key]=record
@@ -422,8 +441,8 @@ def run(wb,project,runtime,cancelled=lambda:False):
                             for old_attempt in reversed(prior):
                                 old_candidate=old_attempt.get('candidate')
                                 if old_candidate and old_attempt.get('static') and not old_attempt.get('review') and not old_candidate.get('assumptions'):
-                                    rechecked=link(translated_plan,old_candidate['artifacts'],target,unit['obligations'],semantic_source,predecessors=produced,require_all=bool(names) and not unknown,expected_writes=expected,lag_order=lag_order)
-                                    if rechecked['static_passed']:pending=old_attempt;break
+                                    rechecked=link_unit(old_candidate['artifacts'])
+                                    if rechecked['static_passed'] or any(x.get('nullable_ddl_fields') for x in rechecked['statements']):pending=old_attempt;break
                                     if target=="clickhouse" and not current_verifier:
                                         from .numeric_rules import lower_decimal_averages
                                         lowered=lower_decimal_averages(parse_json(Candidate,json.dumps(old_candidate)),semantic_source,translated_plan)
@@ -486,7 +505,14 @@ def run(wb,project,runtime,cancelled=lambda:False):
                             elif candidate.assumptions:
                                 attempt["findings"]=[finding("unresolved_assumptions","; ".join(candidate.assumptions))]
                             else:
-                                static=link(translated_plan,[a.model_dump(mode="json") for a in candidate.artifacts],target,unit["obligations"],semantic_source,predecessors=produced,require_all=bool(names) and not unknown,expected_writes=expected,lag_order=lag_order)
+                                static=link_unit(attempt["candidate"]["artifacts"])
+                                if target == "clickhouse" and attempt.get("kind") != "manual" and not rereview_only:
+                                    fixed = preserve_clickhouse_nullable(attempt["candidate"]["artifacts"], static)
+                                    if fixed != attempt["candidate"]["artifacts"]:
+                                        before = digest(attempt["candidate"])
+                                        attempt["candidate"] = {**attempt["candidate"], "artifacts": fixed}
+                                        attempt["nullable_lowering"] = {"before": before, "after": digest(attempt["candidate"])}
+                                        static = link_unit(fixed)
                                 attempt["static"]=static;attempt["findings"]=static["findings"]
                                 if not attempt["findings"]:
                                     try:
@@ -520,6 +546,12 @@ def run(wb,project,runtime,cancelled=lambda:False):
                     for effect in record["static"]["statements"]:
                         table = effect["table"]
                         logical_orders.pop(logical(mappings.get(table, table)), None)
+                        predecessor_nullable.pop(table, None)
+                        predecessor_nonnull.pop(table, None)
+                        if effect.get("nonnull_columns"):
+                            predecessor_nonnull[table] = effect["nonnull_columns"]
+                        if effect.get("nullable_columns"):
+                            predecessor_nullable[table] = effect["nullable_columns"]
                         predecessor_metadata.pop(logical(mappings.get(table, table)), None)
                         if effect["action"] == "drop":
                             produced.discard(table)
@@ -551,6 +583,7 @@ def run(wb,project,runtime,cancelled=lambda:False):
                         "classifications":[c for c in planner["classifications"] if c["scenario_id"]==order["id"]]}
                     assembly.pop("comparisons",None)
                     assembly["contract"]={k:v for k,v in plan.items() if k not in {"comparisons","validation_scope","resolutions"}}
+                    assembly["review_profile"]=validator.identity()
                     assembly["hash"]=digest(assembly)
                     assembly_candidate={"artifacts":script,"artifact_hash":entrypoint["sha256"]}
                     checked=wb.cached_assembly_review(project['id'],project['revision'],assembly['hash'],digest(assembly_candidate),digest(REVIEWER))

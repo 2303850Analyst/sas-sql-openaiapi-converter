@@ -21,3 +21,5 @@ frontend/dist/
 releases/
 !vendor/repositories/**/*.zip
 
+model-profiles.json
+model-profiles.pending

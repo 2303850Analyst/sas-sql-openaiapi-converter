@@ -40,7 +40,8 @@ class Jobs:
             ids = db.execute("SELECT id FROM jobs WHERE project_id=? ORDER BY created DESC LIMIT 20", (project_id,)).fetchall()
         return [self.get(i[0]) for i in ids]
 
-    def submit(self, ident, revision, kind):
+    def submit(self, ident, revision, kind, runtime=None):
+        runtime = runtime or self.runtime
         if kind not in {"generate", "execute", "plan"}:
             raise ValueError("Unknown job kind")
         p = self.wb.get(ident)
@@ -50,19 +51,19 @@ class Jobs:
             from .plan_advisor import project_for_intake
             from .ai_pipeline import exposure
             draft=project_for_intake(p)
-            exposure(draft,self.runtime.model,{'intake':p['intake']})
+            exposure(draft,runtime.model,{'intake':p['intake']})
             p['task']={'hash':digest([p['snapshot']['hash'],p['intake'],p['scope_orders']])}
         elif not p["task"] or not p["gate1"]:
             raise ValueError("Approve current contract first")
         if kind == "generate":
-            if not self.runtime.model:
+            if not runtime.model:
                 raise ValueError("Model profile is not configured")
             if p["plan"].get("acceptance")=="code_review":
                 from .ai_pipeline import exposure
-                exposure(p,self.runtime.model,self.wb.task_package(p))
-                if self.runtime.reviewer:exposure(p,self.runtime.reviewer,self.wb.task_package(p))
-            else:generation.model_payload(self.wb, p, self.runtime.model)
-        elif kind=='execute' and (not p["candidate"] or not self.runtime.database):
+                exposure(p,runtime.model,self.wb.task_package(p))
+                if runtime.reviewer:exposure(p,runtime.reviewer,self.wb.task_package(p))
+            else:generation.model_payload(self.wb, p, runtime.model)
+        elif kind=='execute' and (not p["candidate"] or not runtime.database):
             raise ValueError("A candidate and a test database are required")
         if kind=='execute' and p['plan'].get('acceptance')=='code_review':
             raise ValueError('Execute each exported dialect/scenario in its approved target session; the legacy single-target runner cannot execute a multi-profile package')
@@ -88,7 +89,7 @@ class Jobs:
             except Conflict:
                 self.set(job_id, 'stale', error='Project changed before execution')
                 return self.get(job_id)
-        self.pool.submit(self.run, job_id, p)
+        self.pool.submit(self.run, job_id, p, runtime)
         return self.get(job_id)
 
     def set(self, ident, state, result=None, error=None):
@@ -109,7 +110,7 @@ class Jobs:
                     pass
             return self.get(ident)
 
-    def run(self, ident, project):
+    def run(self, ident, project, runtime):
         cancelled = lambda: self.get(ident)["state"] == "cancelling"
         result = None
         try:
@@ -121,15 +122,15 @@ class Jobs:
             job = self.get(ident)
             if job['kind']=='plan':
                 from .plan_advisor import propose
-                result={'proposal':propose(self.wb,project,self.runtime,cancelled)}
+                result={'proposal':propose(self.wb,project,runtime,cancelled)}
             elif job["kind"] == "generate":
                 if project["plan"].get("acceptance")=="code_review":
                     from .ai_pipeline import run
-                    result={"pipeline":run(self.wb,project,self.runtime,cancelled)}
-                else:result = generation.propose(self.wb, project, self.runtime.model, cancelled)
+                    result={"pipeline":run(self.wb,project,runtime,cancelled)}
+                else:result = generation.propose(self.wb, project, runtime.model, cancelled)
             else:
                 holder = self.connections.setdefault(ident, {})
-                result = {"evidence": execution.execute(self.wb, project, self.runtime.database, cancelled, holder)}
+                result = {"evidence": execution.execute(self.wb, project, runtime.database, cancelled, holder)}
             with self.lock:
                 if cancelled():
                     if result and result.get('pipeline'):
@@ -157,7 +158,7 @@ class Jobs:
             with self.lock:
                 state = "cancelled" if cancelled() else "failed"
                 safe = "Invalid structured model response" if isinstance(error, ValidationError) else (
-                    str(error) if type(error) is ValueError else "Job failed: " + type(error).__name__)
+                    str(error) if isinstance(error, (ValueError, generation.PipelineStop)) else "Job failed: " + type(error).__name__)
                 self.set(ident, state, result, safe)
                 if self.get(ident)['kind'] == 'execute':
                     failure = json.loads(json.dumps(project['evidence']))

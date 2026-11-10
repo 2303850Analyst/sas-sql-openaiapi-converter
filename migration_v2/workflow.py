@@ -668,9 +668,11 @@ class Workbench:
             db.execute("INSERT INTO revisions VALUES (?,?,?)", (ident, new["revision"], json.dumps(new, ensure_ascii=False)))
         return new
 
-    def export_draft(self, project):
+    def export_draft(self, project, target=None):
         if project.get("pipeline"):
-            return self.export_code_package(project)
+            return self.export_code_package(project, target)
+        if target:
+            raise ValueError("Отдельный экспорт доступен после генерации профилей")
         if not project["candidate"]:
             raise ValueError("No candidate to export")
         accepted = bool(project.get("gate2")) and (project.get("evidence") or {}).get("verifier_version") == "complete-schema-exact-number-3"
@@ -687,14 +689,25 @@ class Workbench:
             archive.writestr("manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2).encode("utf-8"))
         return out.getvalue()
 
-    def export_code_package(self,project):
+    def export_code_package(self,project, selected=None):
         pipeline=project["pipeline"]
         from .destinations import resolve
         from .linker import VERSION, assemble_sql
         destinations=resolve(project['plan'])
         physical=destinations['plan']
         accepted=bool(project.get("gate2")) and self.code_review_current(project) and pipeline.get("release_allowed") and project["gate2"].get("candidate_hash")==digest(project.get("candidate"))
-        manifest={"schema_version":2,"status":"accepted_code_not_executed" if accepted else "incomplete_code_draft",
+        profiles = pipeline["profiles"]
+        if selected and selected not in profiles:
+            raise ValueError("Профиль отсутствует в этом проекте")
+        scope = {selected: profiles[selected]} if selected else profiles
+        current = self.code_review_current(project) and not project.get("stale_profile_review")
+        status = ("accepted_code_not_executed" if accepted else
+                  "reviewed_profile_unreleased" if selected and current and profiles[selected]["passed"]
+                  else "incomplete_code_draft")
+        requirements = [item for item in pipeline["requirements"] if not selected or item.get("target") in {None, selected}]
+        units = {key: unit for key, unit in pipeline["units"].items() if not selected or key.startswith(selected + ":")}
+        manifest={"schema_version":2,"status":status,"export_targets":list(scope),
+            "full_project":not bool(selected),"review_current":current,
             "release_allowed":bool(accepted),"task_hash":pipeline["task_hash"],"pipeline_hash":pipeline["evidence_hash"],
             "rules_fingerprint":pipeline.get("rules_fingerprint"),
             "source_snapshot_hash":project["snapshot"]["hash"],"entrypoints":[],"execution":"not_run","sas_comparison":"not_run",
@@ -704,10 +717,10 @@ class Workbench:
             'output_sources':physical.get('output_sources',{}),'scenario_outputs':physical.get('scenario_outputs',{}),
             'testifier':{'enabled':destinations['test_mode'],'destinations':destinations['registry'],'initial_copies':destinations['seeds']},
             'source_semantics':project['plan']['source_semantics'],
-            "requirements":pipeline["requirements"],"profiles":{}}
+            "requirements":requirements,"profiles":{}}
         out=io.BytesIO()
         with zipfile.ZipFile(out,"w",zipfile.ZIP_DEFLATED) as z:
-            for target,profile in pipeline["profiles"].items():
+            for target,profile in scope.items():
                 manifest["profiles"][target]={"code_passed":profile["passed"],"execution":"not_run",
                     "target_version":project["plan"].get("target_versions",{}).get(target,project["plan"]["target_version"] if target==project["plan"]["target"] else "unknown")}
                 for i,(sid,scenario) in enumerate(profile["scenarios"].items()):
@@ -728,9 +741,9 @@ class Workbench:
             task_plan=project.get('task_plan') or {}
             z.writestr("source-map.json",json.dumps({'classifications':task_plan.get('classifications',[]),
                 'tasks':[{k:v for k,v in u.items() if k in {'id','scenario_id','source_id','source_hash','start','end','line','end_line','statement_map','obligations','dependencies'}} for u in task_plan.get('tasks',[])],
-                'sql_units':{k:{'hash':u['hash'],'candidate_hash':digest(u.get('candidate')),'artifacts':[a['name'] for a in (u.get('candidate') or {}).get('artifacts',[])]} for k,u in pipeline['units'].items()}},ensure_ascii=False,indent=2))
+                'sql_units':{k:{'hash':u['hash'],'candidate_hash':digest(u.get('candidate')),'artifacts':[a['name'] for a in (u.get('candidate') or {}).get('artifacts',[])]} for k,u in units.items()}},ensure_ascii=False,indent=2))
             if project.get('plan_proposal_applied'):z.writestr('plan-proposal-review.json',json.dumps(project['plan_proposal_applied'],ensure_ascii=False,indent=2))
-            z.writestr("code-reviews.json",json.dumps(pipeline,ensure_ascii=False,indent=2))
+            z.writestr("code-reviews.json",json.dumps(pipeline if not selected else {k: v for k, v in pipeline.items() if k not in {"candidate", "history", "units", "profiles", "requirements"}} | {"profiles": scope, "units": units, "requirements": requirements},ensure_ascii=False,indent=2))
             z.writestr("RUN.md","# Запуск пакета\n\nВыберите один целевой диалект и один сценарий из manifest.json. Не склеивайте альтернативные сценарии. Выполните соответствующий SQL-файл в одной сессии с согласованными источниками и параметрами. Проверки кода не подтверждают исполнение или совпадение данных с SAS. Секреты подключений задаются отдельно.\n")
         return out.getvalue()
 

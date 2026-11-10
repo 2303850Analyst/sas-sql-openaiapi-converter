@@ -1,11 +1,12 @@
 """Bounded OpenAI-compatible candidate generation, no tools or automatic retry."""
 from __future__ import annotations
 
-from contextlib import closing
+from contextlib import closing, contextmanager
 from decimal import Decimal, ROUND_CEILING
 import json
 import re
 import ssl
+import socket
 import uuid
 
 import httpx
@@ -116,15 +117,19 @@ class Budget:
 
     def reserve(self, profile, payload):
         # UTF-8 bytes dominate token count for the configured byte tokenizer; overhead margin for framing.
+        if profile.tariff == "unknown":
+            raise ValueError("Unknown tariff: select a confirmed tariff mode before inference")
+        if profile.tariff == "paid" and not (profile.input_usd_per_million and profile.output_usd_per_million):
+            raise ValueError("Paid inference requires explicit positive model rates")
         upper_input = len(json.dumps(payload, ensure_ascii=False).encode()) + 2048
         cost = (Decimal(upper_input) * Decimal(str(profile.input_usd_per_million)) +
                 Decimal(profile.max_output_tokens) * Decimal(str(profile.output_usd_per_million))) * 1000
-        maximum = int(cost.to_integral_value(rounding=ROUND_CEILING))
+        maximum = 0 if profile.tariff == "corporate" else int(cost.to_integral_value(rounding=ROUND_CEILING))
         ident = uuid.uuid4().hex
         with closing(self.wb.connect()) as db, db:
             db.execute("BEGIN IMMEDIATE")
             spent = db.execute("SELECT COALESCE(SUM(COALESCE(actual,reserved)),0) FROM model_spend").fetchone()[0]
-            if spent + maximum > int(Decimal(str(profile.budget_usd)) * 1_000_000_000):
+            if profile.tariff == "paid" and spent + maximum > int(Decimal(str(profile.budget_usd)) * 1_000_000_000):
                 raise PipelineStop("API budget exhausted: maximum request cost would exceed the configured cap")
             db.execute("INSERT INTO model_spend(id,reserved) VALUES(?,?)", (ident, maximum))
             db.execute("INSERT INTO model_exchanges(id,request) VALUES(?,?)", (ident, json.dumps(payload, ensure_ascii=False)))
@@ -136,6 +141,8 @@ class Budget:
             return  # Missing usage is charged at the reserved maximum, never zero.
         amount = int(((Decimal(p) * Decimal(str(profile.input_usd_per_million)) +
                        Decimal(c) * Decimal(str(profile.output_usd_per_million))) * 1000).to_integral_value(rounding=ROUND_CEILING))
+        if profile.tariff == "corporate":
+            amount = 0
         with closing(self.wb.connect()) as db, db:
             db.execute("UPDATE model_spend SET actual=?,usage=? WHERE id=?",
                        (amount, json.dumps({"prompt_tokens": p, "completion_tokens": c}), ident))
@@ -162,21 +169,21 @@ def request_json(wb, profile, payload, cancelled=lambda: False):
     if len(json.dumps(payload, ensure_ascii=False).encode("utf-8")) > profile.max_request_bytes:
         raise ValueError("Task context exceeds profile limit; source was not truncated")
     key = profile.secret()  # fail before spending if missing
+    if key and len(key) >= 8 and key in json.dumps(payload, ensure_ascii=False):
+        raise ValueError("API credential detected in request body")
     if cancelled():
         raise PipelineStop("Job cancelled")
     budget = Budget(wb)
-    reservation = budget.reserve(profile, payload)
-    tls = ssl.create_default_context(cafile=profile.ca_file)
-    try:
-        with httpx.Client(verify=tls, proxy=profile.proxy, trust_env=False, follow_redirects=False,
-                          timeout=httpx.Timeout(profile.request_timeout_seconds, connect=15)) as client:
+    with model_client(profile) as client:
+        reservation = budget.reserve(profile, payload)
+        try:
             with client.stream("POST", profile.endpoint, json=payload,
-                               headers={"Authorization": "Bearer " + key}) as response:
+                               headers=authorization(key)) as response:
                 with closing(wb.connect()) as db, db:
                     db.execute("UPDATE model_exchanges SET status=? WHERE id=?", (response.status_code, reservation))
                 if response.status_code != 200:
                     # Error bodies may contain source or echoed credentials. Do not expose them.
-                    raise ValueError("Model HTTP " + str(response.status_code) + "; no automatic retry")
+                    raise ValueError(status_error(response.status_code))
                 chunks = bytearray()
                 for chunk in response.iter_bytes():
                     chunks.extend(chunk)
@@ -184,9 +191,11 @@ def request_json(wb, profile, payload, cancelled=lambda: False):
                         raise ValueError("Model response exceeds local limit")
                 result = json.loads(chunks)
                 with closing(wb.connect()) as db, db:
-                    db.execute("UPDATE model_exchanges SET response=? WHERE id=?", (chunks.decode('utf-8').replace(key, '[REDACTED]'), reservation))
-    except httpx.HTTPError:
-        raise ModelConnectionError("Model connection failed or timed out; cost reservation retained, no automatic retry") from None
+                    db.execute("UPDATE model_exchanges SET response=? WHERE id=?", (json.dumps(redact_response(result, key), ensure_ascii=False), reservation))
+        except httpx.HTTPError as error:
+            raise ModelConnectionError(network_error(error)) from None
+        except (UnicodeError, json.JSONDecodeError):
+            raise ValueError("Модель вернула повреждённый JSON") from None
     if not isinstance(result, dict):
         raise ValueError("Model envelope must be an object")
     usage = result.get("usage") or {}
@@ -195,11 +204,91 @@ def request_json(wb, profile, payload, cancelled=lambda: False):
     if cancelled():
         raise PipelineStop("Job cancelled; received candidate will not be applied")
     choices = result.get("choices", [])
-    if len(choices) != 1 or choices[0].get("finish_reason") != "stop":
+    if not isinstance(choices, list) or len(choices) != 1 or not isinstance(choices[0], dict) or choices[0].get("finish_reason") != "stop":
         raise ValueError("Model output incomplete; candidate rejected")
     message = choices[0].get("message", {})
-    if message.get("tool_calls") or not isinstance(message.get("content"), str):
+    if not isinstance(message, dict) or message.get("tool_calls") or not isinstance(message.get("content"), str):
         raise ValueError("Unexpected model response type")
+    if key and key in message["content"]:
+        raise ValueError("Ответ модели содержит значение ключа и отклонён")
     return message["content"], {"generator": "openai-compatible-2", "model": profile.model,
+        "profile_identity": profile.identity(),
         "request_hash": digest(payload), "reservation": reservation,
         "usage": {k: usage.get(k) for k in ("prompt_tokens", "completion_tokens")}}
+
+
+def authorization(key):
+    return {"Authorization": "Bearer " + key} if key else {}
+
+
+@contextmanager
+def model_client(profile):
+    from .network import model_route
+    try:
+        tls = ssl.create_default_context(cafile=profile.ca_file)
+    except (OSError, ValueError):
+        raise ValueError("Проверьте файл корпоративного CA") from None
+    try:
+        with model_route(profile), httpx.Client(
+            verify=tls, proxy=profile.proxy, trust_env=False, follow_redirects=False,
+            timeout=httpx.Timeout(profile.request_timeout_seconds, connect=15),
+        ) as client:
+            yield client
+    except socket.gaierror:
+        raise ModelConnectionError("Не удалось разрешить адрес сервера. Проверьте DNS и VPN.") from None
+
+
+def network_error(error):
+    if isinstance(error, httpx.TimeoutException):
+        return "Истекло время запроса к модели"
+    text = str(error).casefold()
+    if "certificate" in text or "ssl" in text:
+        return "Ошибка TLS. Проверьте сертификат сервера и корпоративный CA."
+    if "getaddrinfo" in text or "name resolution" in text:
+        return "Не удалось разрешить адрес сервера. Проверьте DNS и VPN."
+    return "Нет связи с сервером модели. Проверьте сеть, VPN и proxy."
+
+
+def status_error(status):
+    detail = {400: "проверьте ID модели и параметры совместимости", 401: "проверьте ключ",
+              403: "проверьте доступ к модели", 404: "проверьте путь API и ID модели",
+              413: "контекст превышает лимит", 429: "сервер ограничил частоту или квоту"}
+    reason = "ошибка сервера" if status >= 500 else "перенаправление запрещено" if 300 <= status < 400 else detail.get(status, "запрос отклонён")
+    return f"API HTTP {status} - {reason}"
+
+
+def redact_response(value, key):
+    if not key:
+        return value
+    if isinstance(value, str):
+        return value.replace(key, "[REDACTED]")
+    if isinstance(value, dict):
+        return {redact_response(k, key): redact_response(v, key) for k, v in value.items()}
+    if isinstance(value, list):
+        return [redact_response(item, key) for item in value]
+    return value
+
+
+def discover_models(profile):
+    endpoint = profile.endpoint.removesuffix("/chat/completions") + "/models"
+    try:
+        with model_client(profile) as client, client.stream("GET", endpoint, headers=authorization(profile.secret())) as response:
+            if response.status_code != 200:
+                raise ValueError(status_error(response.status_code) + ". ID модели можно ввести вручную.")
+            chunks = bytearray()
+            for chunk in response.iter_bytes():
+                chunks.extend(chunk)
+                if len(chunks) > 2_000_000:
+                    raise ValueError("Каталог моделей превышает локальный лимит")
+        body = json.loads(chunks)
+        entries = body.get("data") if isinstance(body, dict) else None
+        if not isinstance(entries, list):
+            raise ValueError("Каталог не содержит список моделей. Введите ID вручную.")
+        key = profile.secret()
+        return sorted({item["id"] for item in entries if isinstance(item, dict)
+                       and isinstance(item.get("id"), str) and len(item["id"]) <= 200
+                       and (not key or key not in item["id"])})[:1000]
+    except httpx.HTTPError as error:
+        raise ModelConnectionError(network_error(error)) from None
+    except (UnicodeError, json.JSONDecodeError):
+        raise ValueError("Каталог вернул некорректный JSON. Введите ID вручную.") from None

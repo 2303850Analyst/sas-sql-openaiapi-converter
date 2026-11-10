@@ -19,6 +19,7 @@ def create_app(data_dir: Path, token: str | None = None, runtime=None):
     from .runtime import Runtime
     from .jobs import Jobs
     from .generation import Budget
+    from .model_profiles import Profiles
     runtime = runtime or Runtime()
     @asynccontextmanager
     async def lifespan(app):
@@ -30,6 +31,7 @@ def create_app(data_dir: Path, token: str | None = None, runtime=None):
     app.state.token = token or secrets.token_urlsafe(32)
     app.state.runtime = runtime
     app.state.jobs = Jobs(app.state.workbench, runtime)
+    profiles = Profiles(app.state.workbench.root, runtime)
     app.state.budget = Budget(app.state.workbench)
 
     @app.middleware("http")
@@ -72,6 +74,10 @@ def create_app(data_dir: Path, token: str | None = None, runtime=None):
     def javascript():
         return FileResponse(Path(__file__).with_name("web") / "app.js", media_type="text/javascript")
 
+    @app.get("/profiles.js")
+    def profile_javascript():
+        return FileResponse(Path(__file__).with_name("web") / "profiles.js", media_type="text/javascript")
+
     @app.get("/style.css")
     def css():
         return FileResponse(Path(__file__).with_name("web") / "style.css", media_type="text/css")
@@ -79,8 +85,50 @@ def create_app(data_dir: Path, token: str | None = None, runtime=None):
     @app.get("/api/status")
     def status():
         from .rule_identity import rules_fingerprint
-        return {"version": "v2-pilot-0.2", **runtime.public(), "budget": app.state.budget.status(),
+        try:
+            current = profiles.resolve()
+        except ValueError:
+            current = Runtime(database=runtime.database)
+        return {"version": "v2-trial-0.3", **current.public(), "budget": app.state.budget.status(),
                 "equivalence": "per_project", "release_allowed": False, "rules_fingerprint": rules_fingerprint()}
+
+    @app.get("/api/model-profiles")
+    def profile_list():
+        return profiles.view()
+
+    @app.post("/api/model-profiles")
+    @app.put("/api/model-profiles/{ident}")
+    async def profile_save(request: Request, ident: str | None = None):
+        from starlette.concurrency import run_in_threadpool
+        from .model_profiles import ProfileUpdate
+        from .contracts import parse_json
+        raw = bytearray()
+        async for chunk in request.stream():
+            raw.extend(chunk)
+            if len(raw) > 32768:
+                raise HTTPException(413, "Profile request too large")
+        return await run_in_threadpool(profiles.update, ident, parse_json(ProfileUpdate, bytes(raw)))
+
+    @app.post("/api/model-profiles/{ident}/activate")
+    def profile_activate(ident: str):
+        return profiles.activate(ident)
+
+    @app.post("/api/model-profiles/{ident}/models")
+    def profile_models(ident: str):
+        from .generation import discover_models
+        return {"models": discover_models(profiles.resolve(ident, probe=True).model)}
+
+    @app.post("/api/model-profiles/{ident}/probe")
+    def profile_probe(ident: str):
+        from dataclasses import replace
+        from .generation import completion_payload, request_json
+        current = profiles.resolve(ident).model
+        probe = replace(current, max_output_tokens=min(current.max_output_tokens, 64), response_format_mode="none")
+        payload = completion_payload(probe, [{"role": "user", "content": "Reply with the single word OK."}])
+        content, provenance = request_json(app.state.workbench, probe, payload)
+        if content.strip().strip(".").upper() != "OK":
+            raise ValueError("Модель ответила, но не прошла синтетическую проверку формата")
+        return {"passed": True, "model": current.model, "usage": provenance["usage"]}
 
     @app.post("/api/projects/{ident}/jobs")
     async def start_job(ident: str, request: Request):
@@ -93,8 +141,10 @@ def create_app(data_dir: Path, token: str | None = None, runtime=None):
         class JobRequest(Contract):
             revision: int = Field(ge=1)
             kind: Literal["generate", "execute", "plan"]
+            profile_id: str | None = Field(default=None, max_length=80)
         data = parse_json(JobRequest, body)
-        return app.state.jobs.submit(ident, data.revision, data.kind)
+        selected = profiles.resolve(data.profile_id) if data.kind in {"plan", "generate"} else runtime
+        return app.state.jobs.submit(ident, data.revision, data.kind, selected)
 
     @app.get("/api/projects/{ident}/jobs")
     def recent_jobs(ident: str):
@@ -135,7 +185,16 @@ def create_app(data_dir: Path, token: str | None = None, runtime=None):
     def project(ident: str):
         return project_view(app.state.workbench.get(ident))
 
+    def stale_profile(state):
+        pipeline = state.get("pipeline") or {}
+        slot = pipeline.get("review_profile_slot")
+        return bool(slot and profiles.reviewer_identity(slot) != pipeline.get("review_profile"))
+
     def project_view(state):
+        if stale_profile(state):
+            state = {**state, "stale_profile_review": True}
+            if state.get("gate2"):
+                state.update(stale_gate2=state["gate2"], gate2=None, state="NEEDS_HITL")
         from .contracts import digest
         retired = state.get("retired_test_evidence", {})
         records = state.get("quality_evidence", []) + state.get("unit_quality_failures", [])
@@ -177,6 +236,8 @@ def create_app(data_dir: Path, token: str | None = None, runtime=None):
             payload: dict
 
         data = parse_json(Command, bytes(raw))
+        if data.action == "approve_release" and stale_profile(app.state.workbench.get(ident)):
+            raise Conflict("Параметры профиля ревью изменились. Перепроверьте сохранённый SQL.")
         return project_view(app.state.workbench.command(ident, data.revision, data.action, data.payload))
 
     @app.get("/api/projects/{ident}/task")
@@ -185,9 +246,12 @@ def create_app(data_dir: Path, token: str | None = None, runtime=None):
         return wb.task_package(wb.get(ident))
 
     @app.get("/api/projects/{ident}/draft")
-    def export(ident: str):
+    def export(ident: str, target: str | None = None):
         wb = app.state.workbench
-        return Response(wb.export_draft(wb.get(ident)), media_type="application/zip",
+        state = wb.get(ident)
+        if stale_profile(state):
+            state = {**state, "gate2": None, "stale_profile_review": True}
+        return Response(wb.export_draft(state, target), media_type="application/zip",
                         headers={"Content-Disposition": 'attachment; filename="migration-v2-unverified.zip"'})
 
     return app
