@@ -65,8 +65,12 @@ class Jobs:
             else:generation.model_payload(self.wb, p, runtime.model)
         elif kind=='execute' and (not p["candidate"] or not runtime.database):
             raise ValueError("A candidate and a test database are required")
-        if kind=='execute' and p['plan'].get('acceptance')=='code_review':
-            raise ValueError('Execute each exported dialect/scenario in its approved target session; the legacy single-target runner cannot execute a multi-profile package')
+        native_gp = kind == "execute" and p["plan"].get("acceptance") == "code_review"
+        if native_gp and (runtime.database.target != "greenplum" or not self.wb.code_review_current(p)
+                          or not (p.get("pipeline") or {}).get("profiles", {}).get("greenplum", {}).get("passed")):
+            raise ValueError("Configure Greenplum and obtain current Greenplum code review before native validation")
+        if kind == "execute" and not native_gp and runtime.database.target != "postgresql":
+            raise ValueError("The legacy runner requires PostgreSQL")
         job_id = uuid.uuid4().hex
         with self.lock, closing(self.wb.connect()) as db, db:
             db.execute("BEGIN IMMEDIATE")
@@ -83,7 +87,8 @@ class Jobs:
                 evidence.pop(field, None)
             evidence.pop('hash', None); evidence['hash'] = digest(evidence)
             try:
-                p = self.wb.record_execution(ident, revision, evidence)
+                p = (self.wb.record_greenplum(ident, revision, {"status":"not_run","passed":False})
+                     if native_gp else self.wb.record_execution(ident, revision, evidence))
                 with closing(self.wb.connect()) as db, db:
                     db.execute("UPDATE jobs SET revision=? WHERE id=?", (p["revision"], job_id))
             except Conflict:
@@ -130,7 +135,12 @@ class Jobs:
                 else:result = generation.propose(self.wb, project, runtime.model, cancelled)
             else:
                 holder = self.connections.setdefault(ident, {})
-                result = {"evidence": execution.execute(self.wb, project, runtime.database, cancelled, holder)}
+                if project["plan"].get("acceptance") == "code_review":
+                    from .greenplum_execution import execute
+                    native = execute(self.wb,project,runtime.database,cancelled,holder)
+                    result = {"greenplum_validation": {**native,"status":"passed"}}
+                else:
+                    result = {"evidence": execution.execute(self.wb, project, runtime.database, cancelled, holder)}
             with self.lock:
                 if cancelled():
                     if result and result.get('pipeline'):
@@ -149,7 +159,9 @@ class Jobs:
                             else:p = self.wb.command(project["id"], project["revision"], "submit_candidate",
                                                 {"candidate_json": json.dumps(result["candidate"])})
                         else:
-                            p = self.wb.record_execution(project["id"], project["revision"], result["evidence"])
+                            p = (self.wb.record_greenplum(project["id"], project["revision"], result["greenplum_validation"])
+                                 if "greenplum_validation" in result else
+                                 self.wb.record_execution(project["id"], project["revision"], result["evidence"]))
                         result["applied_revision"] = p["revision"]
                         self.set(ident, "succeeded", result)
                     except Conflict:
@@ -166,7 +178,11 @@ class Jobs:
                     failure.update(release_allowed=False, execution_error=safe)
                     failure.pop('hash', None); failure['hash'] = digest(failure)
                     try:
-                        self.wb.record_execution(project['id'], project['revision'], failure)
+                        if project["plan"].get("acceptance") == "code_review":
+                            self.wb.record_greenplum(project["id"],project["revision"],
+                                {"status":"failed" if state=="failed" else "not_run","passed":False,"error":safe})
+                        else:
+                            self.wb.record_execution(project['id'], project['revision'], failure)
                     except Conflict:
                         pass
         finally:

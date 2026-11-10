@@ -10,7 +10,7 @@ from .contracts import digest
 RULE_SOURCES = (
     "migration_v2/ai_pipeline.py", "migration_v2/clickhouse_nulls.py", "migration_v2/linker.py", "migration_v2/verification.py",
     "migration_v2/context.py", "migration_v2/contracts.py", "migration_v2/dataset_syntax.py",
-    "migration_v2/destinations.py", "migration_v2/dialect_adapter.py", "migration_v2/dialect_facts.py",
+    "migration_v2/destinations.py", "migration_v2/greenplum.py", "migration_v2/greenplum_execution.py", "migration_v2/dialect_adapter.py", "migration_v2/dialect_facts.py",
     "migration_v2/includes.py", "migration_v2/numeric_rules.py", "migration_v2/semantic_guidance.py", "migration_v2/task_planner.py",
     "app/sas_lexer.py", "app/sas_blocks.py", "tools/inspect_sources.py",
 )

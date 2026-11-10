@@ -395,8 +395,23 @@ class Workbench:
                 from .task_planner import plan_tasks
                 if old.get("scope")!="entire_egp":
                     raise ValueError("Confirm the whole EGP as separate scenario orders")
-                if set(plan.targets)!={"greenplum","postgresql","clickhouse"}:
-                    raise ValueError("Whole-EGP code package requires all three target profiles")
+                if set(plan.targets) not in ({"greenplum","postgresql","clickhouse"}, {"greenplum"}):
+                    raise ValueError("Choose all three target profiles or a Greenplum-only package")
+                if set(plan.targets)=={"greenplum"} and (plan.target!="greenplum" or not plan.greenplum_native_required):
+                    raise ValueError("A Greenplum-only package requires native Greenplum validation")
+                if plan.greenplum_native_required:
+                    from .destinations import resolve
+                    from .greenplum import columns_for, physical_type
+                    if {c.output.key for c in plan.comparisons}!={o.name.key for o in plan.outputs}:
+                        raise ValueError("Native Greenplum validation requires a reference for every output")
+                    if not plan.test_mode and any(o["storage"]=="persistent" for o in resolve(plan)["plan"]["outputs"]):
+                        raise ValueError("Enable Testifier for permanent Greenplum test destinations")
+                    for output in resolve(plan)["plan"]["outputs"]:
+                        columns = columns_for(output)
+                        if not columns:
+                            raise ValueError("Native Greenplum validation requires complete output types")
+                        for column in columns:
+                            physical_type(column["data_type"])
                 planning=plan_tasks(self,old)
                 if planning["requirements"]:raise ValueError("Task plan has unresolved requirements; open preparation")
                 if len(old.get("scope_orders",[]))>1 and set(plan.scenario_outputs)!={o["id"] for o in old["scope_orders"]}:
@@ -449,12 +464,15 @@ class Workbench:
                 pipeline=old.get("pipeline") or {}
                 if payload or not pipeline.get("release_allowed") or not evidence.get('release_allowed') or not self.code_review_current(old):
                     raise ValueError("Code release requires current linked static and independent AI reviews")
+                native = evidence.get("greenplum_validation") or {}
+                if (old["plan"].get("greenplum_native_required") or native) and not native.get("passed"):
+                    raise ValueError("Current native Greenplum validation is required")
                 if self._known_test_failure(old, pipeline):
                     raise ValueError('A known test-data counterexample blocks this candidate')
                 if pipeline.get("task_hash")!=old["task"]["hash"] or evidence.get("candidate_hash")!=digest(old["candidate"]) or evidence.get("pipeline_hash")!=pipeline.get("evidence_hash"):
                     raise Conflict("Code review is stale")
                 new.pop("stale_gate2",None)
-                new.update(gate2={"task_hash":old["task"]["hash"],"candidate_hash":digest(old["candidate"]),"evidence_hash":evidence["hash"],"actor":"local_user","at":now(),"basis":"code_review_not_data_equivalence"},state="CODE_ACCEPTED")
+                new.update(gate2={"task_hash":old["task"]["hash"],"candidate_hash":digest(old["candidate"]),"evidence_hash":evidence["hash"],"actor":"local_user","at":now(),"basis":"code_review_and_greenplum_control" if native.get("passed") else "code_review_not_data_equivalence"},state="CODE_ACCEPTED")
                 return self._save_command(old,new,action)
             if evidence.get("verifier_version") != "complete-schema-exact-number-3":
                 raise ValueError("Verification is stale; rerun with the current verifier")
@@ -555,6 +573,10 @@ class Workbench:
             "checks":{"execution":"not_run","equivalence":"not_run","code_review":"passed" if result["release_allowed"] else "failed"},
             "notes":["Code review only; target execution and SAS result comparison not performed"]}
         evidence["hash"]=digest(evidence);new["evidence"]=evidence
+        if old["plan"].get("greenplum_native_required"):
+            evidence["release_allowed"] = False
+            new["state"] = "NEEDS_NATIVE_VALIDATION" if result["release_allowed"] else new["state"]
+            evidence.pop("hash", None);evidence["hash"]=digest(evidence)
         if self._known_test_failure(old, result):
             evidence['release_allowed']=False;evidence['checks']['test_data']='failed'
             evidence.pop('hash',None);evidence['hash']=digest(evidence)
@@ -649,6 +671,39 @@ class Workbench:
         new=copy.deepcopy(old);new['plan_proposal']=result
         return self._save_command(old,new,'record_plan_proposal')
 
+    def record_greenplum(self, ident, revision, native):
+        """Apply worker evidence to the current reviewed candidate only."""
+        old = self.get(ident)
+        if old["revision"] != revision or not self.code_review_current(old):
+            raise Conflict("Native Greenplum validation is stale")
+        pipeline = old["pipeline"]
+        if native.get("entrypoints") and digest(native["entrypoints"]) != self._profile_sql_identity(pipeline,"greenplum"):
+            raise Conflict("Greenplum execution did not use the current exported SQL")
+        new = copy.deepcopy(old)
+        evidence = new["evidence"]
+        evidence["greenplum_validation"] = native
+        if not native["passed"] and native.get("comparison"):
+            candidate_hash = digest(old["candidate"])
+            record = {
+                "task_hash":old["task"]["hash"],"candidate_hash":candidate_hash,"target":"greenplum",
+                "dataset_hash":digest(native["input_snapshot_hashes"]),
+                "oracle_hash":digest([c["reference_hash"] for c in native["comparison"]]),
+                "matched":False,"summary":"Greenplum native mismatch in output data or physical schema",
+                "scope":self._test_scope(old),"sql_identity":digest(native["entrypoints"]),
+            }
+            if record not in new.setdefault("quality_evidence", []):
+                new["quality_evidence"].append(record)
+        evidence["comparison"] = native.get("comparison", [])
+        evidence["checks"].update(execution=native["status"], comparison=(
+            "passed" if native["passed"] else "failed" if native.get("comparison") else "not_run"))
+        evidence["release_allowed"] = (native["passed"] and pipeline["release_allowed"]
+                                       and not self._known_test_failure(new,pipeline))
+        evidence.pop("hash", None)
+        evidence["hash"] = digest(evidence)
+        new.update(gate2=None, state="CODE_REVIEW_READY" if evidence["release_allowed"] else
+                   "NEEDS_NATIVE_VALIDATION" if native["status"]=="not_run" else "VALIDATION_FAILED")
+        return self._save_command(old,new,"record_greenplum_validation",actor="verification_worker")
+
     def record_execution(self, ident, revision, evidence):
         """Internal worker entry point; HTTP users/models cannot submit verification claims."""
         old = self.get(ident)
@@ -701,7 +756,10 @@ class Workbench:
             raise ValueError("Профиль отсутствует в этом проекте")
         scope = {selected: profiles[selected]} if selected else profiles
         current = self.code_review_current(project) and not project.get("stale_profile_review")
-        status = ("accepted_code_not_executed" if accepted else
+        gp_validation = (project.get("evidence") or {}).get("greenplum_validation") or {}
+        gp_matched = bool(current and gp_validation.get("passed") and "greenplum" in scope)
+        status = ("accepted_code_greenplum_control_matched" if accepted and gp_matched else
+                  "accepted_code_not_executed" if accepted else
                   "reviewed_profile_unreleased" if selected and current and profiles[selected]["passed"]
                   else "incomplete_code_draft")
         requirements = [item for item in pipeline["requirements"] if not selected or item.get("target") in {None, selected}]
@@ -710,7 +768,8 @@ class Workbench:
             "full_project":not bool(selected),"review_current":current,
             "release_allowed":bool(accepted),"task_hash":pipeline["task_hash"],"pipeline_hash":pipeline["evidence_hash"],
             "rules_fingerprint":pipeline.get("rules_fingerprint"),
-            "source_snapshot_hash":project["snapshot"]["hash"],"entrypoints":[],"execution":"not_run","sas_comparison":"not_run",
+            "source_snapshot_hash":project["snapshot"]["hash"],"entrypoints":[],
+            "execution":"greenplum_control_matched" if gp_matched else "not_run","sas_comparison":"not_run",
             "parameters":project["plan"]["parameters"],"parameter_types":project["plan"].get("parameter_types",{}),
             "bindings":project["plan"]["bindings"],"gate1":project["gate1"],"gate2":project.get("gate2"),
             'outputs':physical['outputs'],'allowed_effects':physical['allowed_effects'],
@@ -723,6 +782,9 @@ class Workbench:
             for target,profile in scope.items():
                 manifest["profiles"][target]={"code_passed":profile["passed"],"execution":"not_run",
                     "target_version":project["plan"].get("target_versions",{}).get(target,project["plan"]["target_version"] if target==project["plan"]["target"] else "unknown")}
+                if target == "greenplum" and current and gp_validation:
+                    manifest["profiles"][target]["execution"] = gp_validation["status"]
+                    z.writestr("greenplum-validation.json", json.dumps(gp_validation,ensure_ascii=False,indent=2))
                 for i,(sid,scenario) in enumerate(profile["scenarios"].items()):
                     path=f"sql/{target}/scenario_{i+1:03d}.sql"
                     assembled = assemble_sql(scenario["artifacts"], target)

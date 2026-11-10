@@ -99,7 +99,11 @@ reviewed_obligations:[all supplied obligation IDs], findings:[{code,message,seve
 No confidence score. A pass must have no blocking findings and must cover every supplied
 obligation. Missing information must yield needs_input and a concrete finding.
 For assembly reviews, check all dependency/producer interfaces, complete scenario
-entrypoints, approved outputs/effects and applicability of prior unit reviews. Unit SQL
+entrypoints, approved outputs/effects and applicability of prior unit reviews.
+For Greenplum, a typed CREATE TABLE followed immediately by INSERT INTO the same
+table is one creation effect. The first INSERT populates the newly created table;
+any later INSERT, including PROC APPEND, is a separate effect. Compare the SELECT
+to the source without treating the typed creation pair as a duplicate write. Unit SQL
 semantics were reviewed separately; hashes alone do not establish semantic equivalence.
 For mode=contract_proposal there is no SQL yet. Independently check the proposed
 output columns and effects against SAS and known input metadata, with source evidence.
@@ -329,7 +333,11 @@ def run(wb,project,runtime,cancelled=lambda:False):
                 from .destinations import resolve,unit_plan,seed_artifacts
                 selected_names={'.'.join(o['name']['parts']) for o in plan['outputs']}
                 seeds=[s for s in resolve(project['plan'])['seeds'] if '.'.join(s['target']['parts']) in selected_names]
-                artifacts=seed_artifacts(seeds,target);produced={'.'.join(s['target']['parts']) for s in seeds}
+                artifacts=seed_artifacts(seeds,target)
+                if target == "greenplum":
+                    from .greenplum import lower_tables
+                    artifacts = lower_tables(artifacts, plan)
+                produced={'.'.join(s['target']['parts']) for s in seeds}
                 translated_plan=unit_plan(plan,seeds)
                 unit_evidence=[];source_text=[];assembly_sources=[]
                 mappings = plan.get("output_sources", {})
@@ -441,7 +449,10 @@ def run(wb,project,runtime,cancelled=lambda:False):
                             for old_attempt in reversed(prior):
                                 old_candidate=old_attempt.get('candidate')
                                 if old_candidate and old_attempt.get('static') and not old_attempt.get('review') and not old_candidate.get('assumptions'):
-                                    rechecked=link_unit(old_candidate['artifacts'])
+                                    previous_artifacts = old_candidate['artifacts']
+                                    if target == 'greenplum':
+                                        previous_artifacts = lower_tables(previous_artifacts, translated_plan)
+                                    rechecked=link_unit(previous_artifacts)
                                     if rechecked['static_passed'] or any(x.get('nullable_ddl_fields') for x in rechecked['statements']):pending=old_attempt;break
                                     if target=="clickhouse" and not current_verifier:
                                         from .numeric_rules import lower_decimal_averages
@@ -494,6 +505,12 @@ def run(wb,project,runtime,cancelled=lambda:False):
                                 lowered=lower_decimal_averages(candidate,semantic_source,translated_plan)
                                 if lowered:
                                     candidate,attempt["physical_lowering"]=lowered
+                            if target == "greenplum" and not rereview_only and attempt.get("kind") != "manual":
+                                fixed = lower_tables([a.model_dump(mode="json") for a in candidate.artifacts], translated_plan)
+                                if fixed != [a.model_dump(mode="json") for a in candidate.artifacts]:
+                                    before = digest(candidate)
+                                    candidate = parse_json(Candidate, json.dumps({**candidate.model_dump(mode="json"), "artifacts":fixed}))
+                                    attempt["physical_lowering"] = {"before":before,"after":digest(candidate)}
                             attempt.update(candidate=candidate.model_dump(mode="json"),generator=provenance)
                             repeated=next((previous_attempt for previous_attempt in reversed(prior[:-1])
                                 if previous_attempt.get("findings") and progress_hash(previous_attempt.get("candidate"),target)==progress_hash(attempt["candidate"],target)),None)

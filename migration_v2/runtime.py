@@ -87,12 +87,20 @@ class DatabaseProfile:
     target: str = "postgresql"
     version_prefix: str = "17."
     reference_schemas: tuple[str, ...] = ()
+    write_schemas: tuple[str, ...] = ()
     statement_timeout_ms: int = 15000
     max_rows: int = 10000
 
     def __post_init__(self):
-        if self.target != "postgresql":
-            raise ValueError("Execution adapter currently requires a PostgreSQL test database")
+        if self.target not in {"postgresql", "greenplum"}:
+            raise ValueError("Unsupported test database target")
+        if self.target == "greenplum":
+            if (not re.fullmatch(r"\d+(?:\.\d+)*", self.version_prefix) or not self.reference_schemas
+                    or set(self.write_schemas) & set(self.reference_schemas)
+                    or any(not re.fullmatch(r"[a-z_][a-z0-9_]*", s) or s.startswith(("pg_", "gp_"))
+                           or s in {"public","information_schema"}
+                           for s in (*self.write_schemas,*self.reference_schemas))):
+                raise ValueError("Greenplum requires a version and separate explicit sandbox/reference schemas")
         if self.sslmode not in {"verify-full", "disable"} or (self.sslmode == "disable" and self.host not in {"127.0.0.1", "::1", "localhost"}):
             raise ValueError("Remote database requires verify-full TLS")
         if not 1 <= self.port <= 65535 or not 100 <= self.statement_timeout_ms <= 60000 or not 1 <= self.max_rows <= 100000:

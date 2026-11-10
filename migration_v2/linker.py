@@ -8,6 +8,7 @@ from sqlglot.optimizer.scope import traverse_scope
 from .contracts import digest
 from .verification import allowed_node, table_key
 from .clickhouse_nulls import projection_nullability, preserve_clickhouse_nullable
+from .greenplum import columns_for, paired_statements, valid_definition
 
 VERSION="linked-code-review-3"
 DIALECTS={"greenplum":"postgres","postgresql":"postgres","clickhouse":"clickhouse"}
@@ -223,7 +224,8 @@ def link(plan, artifacts, target, obligations=(), source="", *, predecessors=(),
         try:trees=sqlglot.parse(artifact["sql"],read=dialect,error_level="RAISE",error_message_context=0)
         except Exception:
             add("sql_parse_error","SQL не разбирается для выбранного диалекта",artifact["name"]);continue
-        for index,tree in enumerate(trees):
+        statement_pairs = paired_statements(trees) if target == "greenplum" else ((i,t,False) for i,t in enumerate(trees))
+        for index,tree,typed_pair in statement_pairs:
             loc=artifact["name"]+":"+str(index+1)
             read_tables=set()
             if tree is None:
@@ -252,6 +254,9 @@ def link(plan, artifacts, target, obligations=(), source="", *, predecessors=(),
                 add("unapproved_function", f"{target} {version}: проверка не подтверждает функцию "
                     + ", ".join(sorted(rejected)), loc)
             if action=="create":
+                gp_columns = columns_for(outputs[name]) if target == "greenplum" else []
+                if (gp_columns or typed_pair) and (not typed_pair or not gp_columns or not valid_definition(tree, gp_columns)):
+                    add("greenplum_physical_schema", "Greenplum требует явное создание с точными типами и NOT NULL: " + name, loc)
                 if tree.args.get("kind")!="TABLE" or tree.args.get("replace") or tree.args.get("exists"):
                     add("create_option_not_supported","Нужен явный CREATE TABLE без скрытой замены/пропуска",loc)
                 if name in available:add("duplicate_write","Таблица уже существует в этой цепочке: "+name,loc)

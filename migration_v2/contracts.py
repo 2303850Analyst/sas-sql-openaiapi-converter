@@ -161,6 +161,7 @@ class Plan(Contract):
     output_sources: dict[str,str] = Field(default_factory=dict)
     output_destinations: dict[str,ObjectName] = Field(default_factory=dict)
     test_mode: bool = False
+    greenplum_native_required: bool = False
     intermediate_inputs: tuple[str,...] = ()
     parameters: dict[str, str] = Field(default_factory=dict)
     parameter_types: dict[str, Literal["string", "integer", "decimal", "date", "identifier"]] = Field(default_factory=dict)
@@ -193,6 +194,8 @@ class Plan(Contract):
             raise ValueError("Invalid or duplicate macro parameter")
         if not any(o.role == "final" for o in self.outputs):
             raise ValueError("At least one final output is required")
+        if self.greenplum_native_required and (self.acceptance != "code_review" or "greenplum" not in self.targets):
+            raise ValueError("Native Greenplum validation requires the Greenplum code profile")
         names = [c.output.key for c in self.comparisons]
         if len(names) != len(set(names)) or set(names) - {o.name.key for o in self.outputs}:
             raise ValueError("Comparison must identify a distinct declared output")
